@@ -12,3 +12,7 @@ Repository for the project in the IT class in grade 12
 
 ## Konzept
 Wir bauen ein 2d-racing game. Vorerst soll es sich auf den Einzelspielermodus beschränken.
+
+# Wöchentliche Changelogs
+
+- 2026-05-05: [2026-W19](changelogs/2026-W19/)
