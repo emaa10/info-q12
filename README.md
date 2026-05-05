@@ -1,4 +1,4 @@
-# info-q12
+# Informatik Projekt
 Repository for the project in the IT class in grade 12
 
 # Documentation
