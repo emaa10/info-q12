@@ -7,3 +7,8 @@ Repository for the project in the IT class in grade 12
 # Email an Herr Stark
 **an** starkrobert@gym-indersdorf.de 
 **Betreff**: Berger_1.Woche z.b.
+
+# Projekt
+
+## Konzept
+Wir bauen ein 2d-racing game. Vorerst soll es sich auf den Einzelspielermodus beschränken.
