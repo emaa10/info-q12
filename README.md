@@ -1,3 +1,12 @@
+<!-- TOC -->
+- [Informatik Projekt](#informatik-projekt)
+- [Documentation](#documentation)
+- [Email an Herr Stark](#email-an-herr-stark)
+- [Projekt](#projekt)
+  - [Konzept](#konzept)
+- [Wöchentliche Changelogs](#wöchentliche-changelogs)
+<!-- /TOC -->
+
 # Informatik Projekt
 Repository for the project in the IT class in grade 12
 
