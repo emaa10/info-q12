@@ -1,0 +1,89 @@
+name: Update README Table of Contents
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'README.md'
+
+permissions:
+  contents: write
+
+jobs:
+  toc:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Generate and insert Table of Contents
+        run: |
+          python3 - <<'PYEOF'
+          import re
+
+          README = "README.md"
+          TOC_START = "<!-- TOC -->"
+          TOC_END   = "<!-- /TOC -->"
+
+          with open(README, "r", encoding="utf-8") as f:
+              content = f.read()
+
+          # Remove existing TOC block (including surrounding blank lines) if present
+          content = re.sub(
+              r"\n?" + re.escape(TOC_START) + r".*?" + re.escape(TOC_END) + r"\n?",
+              "",
+              content,
+              flags=re.DOTALL,
+          ).lstrip("\n")
+
+          # Collect all headings
+          heading_re = re.compile(r"^(#{1,6})\s+(.+)", re.MULTILINE)
+          headings = heading_re.findall(content)
+
+          def slugify(text):
+              """GitHub-compatible anchor slugs."""
+              text = text.lower()
+              text = re.sub(r"[^\w\s-]", "", text)   # strip special chars except - and _
+              text = re.sub(r"[\s]+", "-", text.strip())
+              return text
+
+          # Count duplicate slugs so we can append -1, -2 … like GitHub does
+          slug_counts = {}
+          toc_lines = []
+          for hashes, title in headings:
+              level  = len(hashes)
+              indent = "  " * (level - 1)
+              slug   = slugify(title)
+              count  = slug_counts.get(slug, 0)
+              slug_counts[slug] = count + 1
+              anchor = slug if count == 0 else f"{slug}-{count}"
+              # Strip any inline markdown from the visible label
+              label = re.sub(r"[*_`~\[\]]", "", title).strip()
+              toc_lines.append(f"{indent}- [{label}](#{anchor})")
+
+          toc_block = TOC_START + "\n" + "\n".join(toc_lines) + "\n" + TOC_END
+
+          new_content = toc_block + "\n\n" + content
+
+          with open(README, "w", encoding="utf-8") as f:
+              f.write(new_content)
+
+          print("TOC updated successfully.")
+          PYEOF
+
+      - name: Commit and push updated README
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add README.md
+
+          if git diff --cached --quiet; then
+            echo "TOC unchanged – nothing to commit."
+          else
+            git commit -m "docs: update README table of contents [skip ci]"
+            git push origin main
+          fi
