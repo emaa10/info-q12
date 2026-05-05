@@ -76,6 +76,25 @@ jobs:
               )
               return response.choices[0].message.content.strip()
 
+          def ai_email_summary(author, commits):
+              """Ask GitHub Models for 3-5 short German bullet points (email style)."""
+              subjects = "\n".join(
+                  f"- [{c['date']}] {c['subject']}" for c in commits
+              )
+              prompt = (
+                  f"Erstelle eine kurze E-Mail-Zusammenfassung auf Deutsch für '{author}'.\n"
+                  f"Nutze maximal 5 prägnante Stichpunkte, die beschreiben, was diese Woche "
+                  f"gemacht wurde. Keine langen Erklärungen – nur kurze Stichpunkte.\n\n"
+                  f"Commits:\n{subjects}"
+              )
+              response = client.chat.completions.create(
+                  model="gpt-4o-mini",
+                  messages=[{"role": "user", "content": prompt}],
+                  temperature=0.3,
+                  max_tokens=512,
+              )
+              return response.choices[0].message.content.strip()
+
           # ── Date window ───────────────────────────────────────────────────
           now        = datetime.now(timezone.utc)
           week_start = now - timedelta(days=7)
@@ -143,6 +162,8 @@ jobs:
           week_dir = os.path.join("changelogs", year_week)
           os.makedirs(week_dir, exist_ok=True)
 
+          email_summaries = {}  # author -> short bullet points
+
           if not by_author:
               placeholder = os.path.join(week_dir, "keine-commits.md")
               with open(placeholder, "w", encoding="utf-8") as f:
@@ -155,6 +176,9 @@ jobs:
 
                   print(f"KI-Zusammenfassung wird erstellt für: {author} …")
                   summary = ai_summary(author, commits)
+
+                  print(f"E-Mail-Zusammenfassung wird erstellt für: {author} …")
+                  email_summaries[author] = ai_email_summary(author, commits)
 
                   file_lines = [
                       f"# Wochenbericht – {year_week} – {author}",
@@ -232,6 +256,27 @@ jobs:
           with open(readme_path, "w", encoding="utf-8") as f:
               f.write(readme)
           print(f"Aktualisiert: {readme_path}")
+
+          # ── Write German email summary to GitHub Actions job summary ─────────
+          step_summary_path = os.environ.get("GITHUB_STEP_SUMMARY", "")
+          if step_summary_path:
+              summary_lines = [
+                  f"## 📋 Wochenzusammenfassung – {year_week}",
+                  "",
+                  f"_Erstellt am {date_label}_",
+                  "",
+              ]
+              if not email_summaries:
+                  summary_lines.append("_Keine Commits diese Woche._")
+              else:
+                  for author, bullets in email_summaries.items():
+                      summary_lines.append(f"### 👤 {author}")
+                      summary_lines.append("")
+                      summary_lines.append(bullets)
+                      summary_lines.append("")
+              with open(step_summary_path, "a", encoding="utf-8") as f:
+                  f.write("\n".join(summary_lines) + "\n")
+              print("GitHub Actions Job Summary geschrieben.")
           PYEOF
 
       - name: Commit and push changes
