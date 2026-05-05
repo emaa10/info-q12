@@ -162,8 +162,6 @@ jobs:
           week_dir = os.path.join("changelogs", year_week)
           os.makedirs(week_dir, exist_ok=True)
 
-          email_summaries = {}  # author -> short bullet points
-
           if not by_author:
               placeholder = os.path.join(week_dir, "keine-commits.md")
               with open(placeholder, "w", encoding="utf-8") as f:
@@ -178,12 +176,18 @@ jobs:
                   summary = ai_summary(author, commits)
 
                   print(f"E-Mail-Zusammenfassung wird erstellt für: {author} …")
-                  email_summaries[author] = ai_email_summary(author, commits)
+                  email_summary = ai_email_summary(author, commits)
 
                   file_lines = [
                       f"# Wochenbericht – {year_week} – {author}",
                       "",
                       f"_Automatisch erstellt am {date_label} mit GitHub Copilot (KI)_",
+                      "",
+                      "## E-Mail-Zusammenfassung",
+                      "",
+                      email_summary,
+                      "",
+                      "---",
                       "",
                       "## Zusammenfassung",
                       "",
@@ -256,27 +260,6 @@ jobs:
           with open(readme_path, "w", encoding="utf-8") as f:
               f.write(readme)
           print(f"Aktualisiert: {readme_path}")
-
-          # ── Write German email summary to GitHub Actions job summary ─────────
-          step_summary_path = os.environ.get("GITHUB_STEP_SUMMARY", "")
-          if step_summary_path:
-              summary_lines = [
-                  f"## 📋 Wochenzusammenfassung – {year_week}",
-                  "",
-                  f"_Erstellt am {date_label}_",
-                  "",
-              ]
-              if not email_summaries:
-                  summary_lines.append("_Keine Commits diese Woche._")
-              else:
-                  for author, bullets in email_summaries.items():
-                      summary_lines.append(f"### 👤 {author}")
-                      summary_lines.append("")
-                      summary_lines.append(bullets)
-                      summary_lines.append("")
-              with open(step_summary_path, "a", encoding="utf-8") as f:
-                  f.write("\n".join(summary_lines) + "\n")
-              print("GitHub Actions Job Summary geschrieben.")
           PYEOF
 
       - name: Commit and push changes
