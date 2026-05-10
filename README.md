@@ -24,4 +24,4 @@ Wir bauen ein 2d-racing game. Vorerst soll es sich auf den Einzelspielermodus be
 
 # Wöchentliche Changelogs
 
-- 2026-05-05: [2026-W19](changelogs/2026-W19/)
+- 2026-05-10: [2026-W19](changelogs/2026-W19/)
