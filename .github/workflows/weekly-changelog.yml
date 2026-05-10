@@ -2,8 +2,8 @@ name: Weekly Changelog
 
 on:
   schedule:
-    # Runs every Sunday at 10:00 UTC
-    - cron: '0 10 * * 0'
+    # Runs every Saturday at 10:00 UTC
+    - cron: '0 10 * * 6'
   workflow_dispatch: # allow manual trigger for testing
 
 permissions:
