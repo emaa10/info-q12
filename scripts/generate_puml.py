@@ -130,7 +130,7 @@ known = set(classes.keys())
 relationships = []
 
 lines = [
-    "@startuml PixelDrift",
+    "@startuml",
     "",
     "skinparam classAttributeIconSize 0",
     "skinparam classFontSize 11",
