@@ -1,0 +1,64 @@
+name: Klassendiagramm generieren
+
+on:
+  push:
+    branches: ['**']
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Python-Abhängigkeiten installieren
+        run: pip install reportlab Pillow --quiet
+
+      - name: PlantUML JAR herunterladen
+        run: |
+          curl -sL "https://github.com/plantuml/plantuml/releases/download/v1.2024.6/plantuml-1.2024.6.jar" \
+            -o plantuml.jar
+
+      - name: pixeldrift.puml aus Java-Quellen generieren
+        run: python3 scripts/generate_puml.py
+
+      - name: PNG generieren
+        run: java -jar plantuml.jar -Playout=smetana -tpng docs/pixeldrift.puml
+
+      - name: PNG zu PDF konvertieren
+        run: |
+          python3 - <<'EOF'
+          from reportlab.lib.pagesizes import A3, landscape
+          from reportlab.pdfgen import canvas
+          from PIL import Image
+
+          img = Image.open("docs/pixeldrift.png")
+          w, h = img.size
+          page_w, page_h = landscape(A3)
+          scale = min(page_w / w, page_h / h) * 0.95
+          new_w, new_h = w * scale, h * scale
+          x = (page_w - new_w) / 2
+          y = (page_h - new_h) / 2
+
+          c = canvas.Canvas("docs/Klassendiagramm.pdf", pagesize=landscape(A3))
+          c.drawImage("docs/pixeldrift.png", x, y, width=new_w, height=new_h)
+          c.save()
+          EOF
+
+      - name: Temporäre Dateien entfernen
+        run: rm -f docs/pixeldrift.png docs/pixeldrift.puml
+
+      - name: PDF committen
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/Klassendiagramm.pdf
+          git diff --staged --quiet || git commit -m "chore: Klassendiagramm.pdf aktualisiert"
+          git push
