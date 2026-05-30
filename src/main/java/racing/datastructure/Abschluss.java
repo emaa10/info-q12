@@ -1,4 +1,4 @@
-package main.java.racing.datastructure;
+package racing.datastructure;
 
 // ende einer liste
 public class Abschluss implements Listenelement {

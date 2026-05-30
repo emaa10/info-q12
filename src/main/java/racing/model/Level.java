@@ -1,6 +1,6 @@
-package main.java.racing.model;
+package racing.model;
 
-import main.java.racing.datastructure.Liste;
+import racing.datastructure.Liste;
 
 public class Level {
 

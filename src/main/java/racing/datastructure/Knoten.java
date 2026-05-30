@@ -1,4 +1,4 @@
-package main.java.racing.datastructure;
+package racing.datastructure;
 
 // speichert ein datenelement und verweist auf seinen nachfolger
 public class Knoten implements Listenelement {

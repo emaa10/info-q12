@@ -1,4 +1,4 @@
-package main.java.racing.datastructure;
+package racing.datastructure;
 
 public interface Datenelement {
     // leer

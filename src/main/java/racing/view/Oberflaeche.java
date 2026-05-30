@@ -1,4 +1,4 @@
-package main.java.racing.view;
+package racing.view;
 
 import javafx.scene.Parent;
 import javafx.scene.layout.Pane;

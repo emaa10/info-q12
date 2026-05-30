@@ -1,4 +1,4 @@
-package main.java.racing.model;
+package racing.model;
 
 public class Spieler {
 

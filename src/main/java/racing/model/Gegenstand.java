@@ -1,6 +1,6 @@
-package main.java.racing.model;
+package racing.model;
 
-import main.java.racing.datastructure.Datenelement;
+import racing.datastructure.Datenelement;
 
 // alle möglichen Gegenstände auf der Map (hazards, POIs, etc.)
 public abstract class Gegenstand implements Datenelement {

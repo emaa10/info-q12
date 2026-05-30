@@ -1,7 +1,7 @@
-package main.java.racing.controller;
+package racing.controller;
 
-import main.java.racing.model.Spiel;
-import main.java.racing.view.Oberflaeche;
+import racing.model.Spiel;
+import racing.view.Oberflaeche;
 
 public class Kontrolleur implements Runnable {
 

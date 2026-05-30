@@ -1,6 +1,6 @@
-package main.java.racing.model;
+package racing.model;
 
-import main.java.racing.view.Oberflaeche;
+import racing.view.Oberflaeche;
 
 // model-teil
 public class Spiel implements Runnable {

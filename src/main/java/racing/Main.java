@@ -1,12 +1,12 @@
-package main.java.racing;
+package racing;
 
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
-import main.java.racing.controller.Kontrolleur;
-import main.java.racing.model.Spiel;
-import main.java.racing.view.Oberflaeche;
+import racing.controller.Kontrolleur;
+import racing.model.Spiel;
+import racing.view.Oberflaeche;
 
 /**
  * Einstiegspunkt des Spiels.

@@ -1,4 +1,4 @@
-package main.java.racing.model;
+package racing.model;
 
 // kommt gliech von jakob rein
 public class Karte {
