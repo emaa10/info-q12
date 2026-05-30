@@ -13,6 +13,8 @@ public class Map {
     private int modulus;
     private int multiplier;
     private int increment;
+    private int numberOfPoints;
+    private int[] pointCoordinates;
 
     // With seed as a parameter:
     public Map(int seed) {
@@ -21,8 +23,25 @@ public class Map {
         this.modulus = (1 << 16) + 1;
         this.multiplier = 75;
         this.increment = 0;
+        this.numberOfPoints = 8;
+        this.pointCoordinates = new int[2 * this.numberOfPoints];
 
         System.out.println("Generating new Map with seed: " + this.seed);
+
+        lcm(
+            this.seed,
+            this.modulus,
+            this.multiplier,
+            this.increment,
+            this.pointCoordinates,
+            2 * this.numberOfPoints
+        );
+        mod65Arr(pointCoordinates);
+
+        for (int k = 0; k < pointCoordinates.length; k++) {
+            System.out.print(pointCoordinates[k] + " ");
+        }
+        System.out.println();
     }
 
     // Without seed as a parameter:
@@ -37,8 +56,25 @@ public class Map {
         this.modulus = (1 << 16) + 1;
         this.multiplier = 75;
         this.increment = 0;
+        this.numberOfPoints = 8;
+        this.pointCoordinates = new int[2 * this.numberOfPoints];
 
         System.out.println("Generating new Map with seed: " + this.seed);
+
+        lcm(
+            this.seed,
+            this.modulus,
+            this.multiplier,
+            this.increment,
+            this.pointCoordinates,
+            2 * this.numberOfPoints
+        );
+        mod65Arr(pointCoordinates);
+
+        for (int k = 0; k < pointCoordinates.length; k++) {
+            System.out.print(pointCoordinates[k] + " ");
+        }
+        System.out.println();
     }
 
     // "A linear congruential generator (LCG) is an algorithm that yields a sequence of pseudo-randomized
@@ -60,6 +96,13 @@ public class Map {
 
         for (int i = 1; i < numberOfRandomNumbers; i++) {
             randomNumbers[i] = ((randomNumbers[i - 1] * a) + c) % m;
+        }
+    }
+
+    // Utility method.
+    public void mod65Arr(int[] arr) {
+        for (int k = 0; k < arr.length; k++) {
+            arr[k] = arr[k] % 65;
         }
     }
 }
