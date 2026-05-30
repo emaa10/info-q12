@@ -29,7 +29,7 @@ public class Map {
 
         System.out.println("Generating new Map with seed: " + this.seed);
 
-        lcm(
+        lcg(
             this.seed,
             this.modulus,
             this.multiplier,
@@ -62,7 +62,7 @@ public class Map {
 
         System.out.println("Generating new Map with seed: " + this.seed);
 
-        lcm(
+        lcg(
             this.seed,
             this.modulus,
             this.multiplier,
@@ -84,8 +84,8 @@ public class Map {
     // easy to understand, and they are easily implemented and fast, especially on computer hardware which
     // can provide modular arithmetic by storage-bit truncation."
     // (https://en.wikipedia.org/wiki/Linear_congruential_generator, 30th of May 2026, 10.31 CEST)
-    // lcm(seed, modulus m, multiplier a, increment c)
-    public void lcm(
+    // lcg(seed, modulus m, multiplier a, increment c)
+    public void lcg(
         int seed,
         int m,
         int a,
