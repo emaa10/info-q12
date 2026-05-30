@@ -5,7 +5,9 @@
 - [Projekt](#projekt)
   - [Konzept](#konzept)
   - [Technologien](#technologien)
-  - [Build & Start](#build--start)
+  - [Build & Start](#build-start)
+- [kompilieren](#kompilieren)
+- [starten](#starten)
 <!-- /TOC -->
 
 # Informatik Projekt
