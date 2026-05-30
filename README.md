@@ -5,6 +5,7 @@
 - [Projekt](#projekt)
   - [Konzept](#konzept)
   - [Technologien](#technologien)
+  - [Build & Start](#build--start)
 <!-- /TOC -->
 
 # Informatik Projekt
@@ -24,3 +25,17 @@ Wir bauen ein 2d-racing game. Vorerst soll es sich auf den Einzelspielermodus be
 
 ## Technologien
 Wir haben uns für das UI-Framework JavaFX entschieden, da es im Vergleich zu Swing für die Spieleentwicklung optimiert ist: so nutzt es z.B. die Grafikprozessoren des Computers, was Swing nicht macht. Zudem haben wir die von KI generierte Struktur (siehe Stunde am Dienstag) gelöscht und selbst überarbeitet.
+
+## Build & Start
+
+Voraussetzungen: **JDK 17** und das **JavaFX 17 SDK** ([Download](https://gluonhq.com/products/javafx/)). Pfad zum SDK-`lib`-Ordner setzen:
+
+```bash
+export FX=/pfad/zu/javafx-sdk-17/lib
+
+# kompilieren
+javac --module-path "$FX" --add-modules javafx.controls -d out $(find src/main/java -name "*.java")
+
+# starten
+java --module-path "$FX" --add-modules javafx.controls -cp out racing.Main
+```
