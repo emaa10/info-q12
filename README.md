@@ -25,7 +25,3 @@ Wir bauen ein 2d-racing game. Vorerst soll es sich auf den Einzelspielermodus be
 
 ## Technologien
 Wir haben uns für das UI-Framework JavaFX entschieden, da es im Vergleich zu Swing für die Spieleentwicklung optimiert ist: so nutzt es z.B. die Grafikprozessoren des Computers, was Swing nicht macht. Zudem haben wir die von KI generierte Struktur (siehe Stunde am Dienstag) gelöscht und selbst überarbeitet.
-
-# Wöchentliche Changelogs
-
-- 2026-05-10: [2026-W19](changelogs/2026-W19/)
