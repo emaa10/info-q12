@@ -5,7 +5,6 @@
 - [Projekt](#projekt)
   - [Konzept](#konzept)
   - [Technologien](#technologien)
-- [Wöchentliche Changelogs](#wöchentliche-changelogs)
 <!-- /TOC -->
 
 # Informatik Projekt
