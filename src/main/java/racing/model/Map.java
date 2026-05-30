@@ -5,6 +5,8 @@
 // https://en.wikipedia.org/wiki/Linear_congruential_generator
 // https://bitesofcode.wordpress.com/2020/04/09/procedural-racetrack-generation/
 
+package racing.model;
+
 import java.util.Date;
 
 public class Map {
