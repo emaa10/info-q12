@@ -1,3 +1,6 @@
+// Main.java
+// (c) 2026 - Jakob Grätz (@jakobgraetz)
+
 public class Main {
 
     private Map map;
