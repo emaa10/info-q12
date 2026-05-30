@@ -4,11 +4,11 @@ import racing.datastructure.Liste;
 
 public class Level {
 
-    private Karte karte;
+    private Map map;
     private Liste gegenstaende;
 
-    public Level(Karte karte) {
-        this.karte = karte;
+    public Level(Map map) {
+        this.map = map;
         this.gegenstaende = new Liste();
     }
 
@@ -16,8 +16,8 @@ public class Level {
         // TODO: alles, auch object pool
     }
 
-    public Karte gibKarte() {
-        return karte;
+    public Map gibMap() {
+        return map;
     }
 
     public Liste gibGegenstaende() {

@@ -15,7 +15,7 @@ public class Spiel implements Runnable {
         this.oberflaeche = oberflaeche;
         this.datenbank = new Datenbank();
         this.spieler = new Spieler[0];
-        // level wird später z. B. mit einer Karte erzeugt
+        // level wird später z. B. mit einer Map erzeugt
     }
 
     @Override
