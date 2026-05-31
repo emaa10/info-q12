@@ -47,6 +47,13 @@ public class Map {
             System.out.print(pointCoordinates[k] + " ");
         }
         System.out.println();
+
+        for (int k = 0, idx = 0; k < pointCoordinates.length; k += 2, idx++) {
+            this.points[idx] = new Point(
+                pointCoordinates[k],
+                pointCoordinates[k + 1]
+            );
+        }
     }
 
     // Without seed as a parameter:
@@ -63,6 +70,7 @@ public class Map {
         this.increment = 0;
         this.numberOfPoints = 8;
         this.pointCoordinates = new int[2 * this.numberOfPoints];
+        this.points = new Point[this.numberOfPoints];
 
         System.out.println("Generating new Map with seed: " + this.seed);
 
@@ -81,12 +89,10 @@ public class Map {
         }
         System.out.println();
 
-        for (int k = 0; k < pointCoordinates.length; k += 2) {
-            System.out.println(
-                new Point(
-                    pointCoordinates[k],
-                    pointCoordinates[k + 1]
-                ).toString()
+        for (int k = 0, idx = 0; k < pointCoordinates.length; k += 2, idx++) {
+            this.points[idx] = new Point(
+                pointCoordinates[k],
+                pointCoordinates[k + 1]
             );
         }
     }
@@ -118,5 +124,9 @@ public class Map {
         for (int k = 0; k < arr.length; k++) {
             arr[k] = arr[k] % 65;
         }
+    }
+
+    public Point[] getPoints() {
+        return this.points;
     }
 }

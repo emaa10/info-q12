@@ -30,6 +30,10 @@ public class Spiel implements Runnable {
     public void spieleKreis() {
         while (laeuft) {
             // loop hier - oberfläche und backend (zustände)
+            for (Point p : this.level.gibMap().getPoints()) {
+                this.oberflaeche.punktZeichnen(p.getX(), p.getY());
+                System.out.println("Drawing point: " + p.toString());
+            }
 
             try {
                 Thread.sleep(16); // ca. 60 Bilder pro Sekunde
