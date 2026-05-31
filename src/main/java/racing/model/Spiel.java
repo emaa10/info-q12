@@ -31,8 +31,10 @@ public class Spiel implements Runnable {
         while (laeuft) {
             this.oberflaeche.loesche();
             for (Point p : this.level.gibMap().getPoints()) {
-                this.oberflaeche.punktZeichnen(p.getX(), p.getY());
+                this.oberflaeche.punktZeichnen(15 * p.getX(), 9 * p.getY());
             }
+            // x_max = 960; x_rand,max = 64 => mutliply by 15
+            // y_max = 600; y_rand,max = 64 => multiply by 9
 
             try {
                 Thread.sleep(16); // ca. 60 Bilder pro Sekunde
