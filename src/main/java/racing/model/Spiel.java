@@ -4,6 +4,7 @@ import racing.view.Oberflaeche;
 
 // model-teil
 public class Spiel implements Runnable {
+
     private Spieler[] spieler;
     private Level level;
     private Datenbank datenbank;
@@ -15,6 +16,7 @@ public class Spiel implements Runnable {
         this.oberflaeche = oberflaeche;
         this.datenbank = new Datenbank();
         this.spieler = new Spieler[0];
+        this.level = new Level(new Map());
         // level wird später z. B. mit einer Map erzeugt
     }
 

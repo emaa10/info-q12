@@ -18,6 +18,7 @@ public class Map {
     private int increment;
     private int numberOfPoints;
     private int[] pointCoordinates;
+    private Point[] points;
 
     // With seed as a parameter:
     public Map(int seed) {
@@ -28,6 +29,7 @@ public class Map {
         this.increment = 0;
         this.numberOfPoints = 8;
         this.pointCoordinates = new int[2 * this.numberOfPoints];
+        this.points = new Point[this.numberOfPoints];
 
         System.out.println("Generating new Map with seed: " + this.seed);
 
@@ -78,6 +80,15 @@ public class Map {
             System.out.print(pointCoordinates[k] + " ");
         }
         System.out.println();
+
+        for (int k = 0; k < pointCoordinates.length; k += 2) {
+            System.out.println(
+                new Point(
+                    pointCoordinates[k],
+                    pointCoordinates[k + 1]
+                ).toString()
+            );
+        }
     }
 
     // "A linear congruential generator (LCG) is an algorithm that yields a sequence of pseudo-randomized

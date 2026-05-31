@@ -25,16 +25,16 @@ public class Main extends Application {
         kontrolleur = new Kontrolleur(oberflaeche, spiel);
 
         Scene szene = new Scene(oberflaeche.gibWurzel(), BREITE, HOEHE);
-        buehne.setTitle("Racinggame");
+        buehne.setTitle("Rennspiel");
         buehne.setScene(szene);
         buehne.show();
 
-        spielThread = new Thread(spiel, "GameThread");
-        kontrollThread = new Thread(kontrolleur, "ControllerThread");
-        spielThread.setDaemon(true);
-        kontrollThread.setDaemon(true);
-        spielThread.start();
-        kontrollThread.start();
+        gameThread = new Thread(spiel, "GameThread");
+        controllerThread = new Thread(kontrolleur, "ControllerThread");
+        gameThread.setDaemon(true);
+        controllerThread.setDaemon(true);
+        gameThread.start();
+        controllerThread.start();
     }
 
     @Override
