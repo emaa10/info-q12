@@ -14,8 +14,8 @@ public class Main extends Application {
 
     private Spiel spiel;
     private Kontrolleur kontrolleur;
-    private Thread spielThread;
-    private Thread kontrollThread;
+    private Thread gameThread;
+    private Thread controllerThread;
 
     @Override
     public void start(Stage buehne) {
