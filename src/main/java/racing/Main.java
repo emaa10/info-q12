@@ -3,7 +3,6 @@ package racing;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
-
 import racing.controller.Kontrolleur;
 import racing.model.Spiel;
 import racing.view.Oberflaeche;
@@ -30,12 +29,12 @@ public class Main extends Application {
         buehne.setScene(szene);
         buehne.show();
 
-        gameThread = new Thread(spiel, "GameThread");
-        controllerThread = new Thread(kontrolleur, "ControllerThread");
-        gameThread.setDaemon(true);
-        controllerThread.setDaemon(true);
-        gameThread.start();
-        controllerThread.start();
+        spielThread = new Thread(spiel, "GameThread");
+        kontrollThread = new Thread(kontrolleur, "ControllerThread");
+        spielThread.setDaemon(true);
+        kontrollThread.setDaemon(true);
+        spielThread.start();
+        kontrollThread.start();
     }
 
     @Override
