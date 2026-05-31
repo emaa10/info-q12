@@ -28,14 +28,27 @@ public class Spiel implements Runnable {
 
     // game loop ihr deutschen
     public void spieleKreis() {
-        while (laeuft) {
-            this.oberflaeche.loesche();
-            for (Point p : this.level.gibMap().getPoints()) {
-                this.oberflaeche.punktZeichnen(15 * p.getX(), 9 * p.getY());
-            }
-            // x_max = 960; x_rand,max = 64 => mutliply by 15
-            // y_max = 600; y_rand,max = 64 => multiply by 9
+        this.oberflaeche.loesche();
+        for (Point p : this.level.gibMap().getPoints()) {
+            this.oberflaeche.punktZeichnen(
+                14 * p.getX() + 32,
+                7 * p.getY() + 44
+            );
+        }
+        this.oberflaeche.startEndPunktZeichnen(
+            14 * this.level.gibMap().getStartFinishPoint().getX() + 32,
+            7 * this.level.gibMap().getStartFinishPoint().getY() + 44
+        );
+        // Note:
+        // Scale:
+        // x_max = 960; x_rand,max = 64 => Faktor 14 (x_s,min = 0, x_s,max = 896)
+        // y_max = 600; y_rand,max = 64 => Faktor 8 (y_s,min = 0, y_s,max = 512)
+        // Transform:
+        // x + 32 (x_st,min = 32, x_st,max = 928) -> genau um 1/2 * 64 = 32 = Abstanbd zum rechten Rand
+        // y + 44 (y_st, min = 44, y_st,max = 556) -> vgl. oben, nur eben in vertikaler Richtung
+        // Damit die Punkte nicht in irgendeinem Eck vergammeln
 
+        while (laeuft) {
             try {
                 Thread.sleep(16); // ca. 60 Bilder pro Sekunde
             } catch (InterruptedException e) {

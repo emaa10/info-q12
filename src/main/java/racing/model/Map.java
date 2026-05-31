@@ -19,6 +19,11 @@ public class Map {
     private int numberOfPoints;
     private int[] pointCoordinates;
     private Point[] points;
+    // Die Ziellinie in der Formel 1 wird offiziell als Start-Ziel-Linie bezeichnet.
+    // Sie dient als Startpunkt des Rennens sowie als Zeitmesslinie für die Rundenzeiten
+    // und markiert das Ende jeder gefahrenen Runde und des gesamten Rennens. (vgl. Wikipedia)
+    private Point startFinishPoint;
+    private int[] startFinishCoordinates;
 
     // With seed as a parameter:
     public Map(int seed) {
@@ -30,8 +35,7 @@ public class Map {
         this.numberOfPoints = 8;
         this.pointCoordinates = new int[2 * this.numberOfPoints];
         this.points = new Point[this.numberOfPoints];
-
-        System.out.println("Generating new Map with seed: " + this.seed);
+        this.startFinishCoordinates = new int[2];
 
         lcg(
             this.seed,
@@ -43,17 +47,26 @@ public class Map {
         );
         mod65Arr(pointCoordinates);
 
-        for (int k = 0; k < pointCoordinates.length; k++) {
-            System.out.print(pointCoordinates[k] + " ");
-        }
-        System.out.println();
-
         for (int k = 0, idx = 0; k < pointCoordinates.length; k += 2, idx++) {
             this.points[idx] = new Point(
                 pointCoordinates[k],
                 pointCoordinates[k + 1]
             );
         }
+
+        lcg(
+            this.seed,
+            this.modulus,
+            this.multiplier,
+            this.increment,
+            this.startFinishCoordinates,
+            2
+        );
+        mod65Arr(this.startFinishCoordinates);
+        this.startFinishPoint = new Point(
+            this.startFinishCoordinates[0],
+            this.startFinishCoordinates[1]
+        );
     }
 
     // Without seed as a parameter:
@@ -71,8 +84,7 @@ public class Map {
         this.numberOfPoints = 8;
         this.pointCoordinates = new int[2 * this.numberOfPoints];
         this.points = new Point[this.numberOfPoints];
-
-        System.out.println("Generating new Map with seed: " + this.seed);
+        this.startFinishCoordinates = new int[2];
 
         lcg(
             this.seed,
@@ -84,17 +96,26 @@ public class Map {
         );
         mod65Arr(pointCoordinates);
 
-        for (int k = 0; k < pointCoordinates.length; k++) {
-            System.out.print(pointCoordinates[k] + " ");
-        }
-        System.out.println();
-
         for (int k = 0, idx = 0; k < pointCoordinates.length; k += 2, idx++) {
             this.points[idx] = new Point(
                 pointCoordinates[k],
                 pointCoordinates[k + 1]
             );
         }
+
+        lcg(
+            this.seed,
+            this.modulus,
+            this.multiplier,
+            this.increment,
+            this.startFinishCoordinates,
+            2
+        );
+        mod65Arr(this.startFinishCoordinates);
+        this.startFinishPoint = new Point(
+            this.startFinishCoordinates[0],
+            this.startFinishCoordinates[1]
+        );
     }
 
     // "A linear congruential generator (LCG) is an algorithm that yields a sequence of pseudo-randomized
@@ -128,5 +149,9 @@ public class Map {
 
     public Point[] getPoints() {
         return this.points;
+    }
+
+    public Point getStartFinishPoint() {
+        return this.startFinishPoint;
     }
 }

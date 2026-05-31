@@ -47,4 +47,13 @@ public class Oberflaeche {
             gc.fillOval(x - 5, y - 5, 10, 10);
         });
     }
+
+    public void startEndPunktZeichnen(int x, int y) {
+        Platform.runLater(() -> {
+            gc.setFill(Color.RED);
+            gc.fillOval(x - 5, y - 5, 10, 10);
+            gc.setFill(Color.BLACK);
+            gc.fillText("Start-Ziel-Linie", x - 15, y - 15);
+        });
+    }
 }
