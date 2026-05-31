@@ -29,10 +29,9 @@ public class Spiel implements Runnable {
     // game loop ihr deutschen
     public void spieleKreis() {
         while (laeuft) {
-            // loop hier - oberfläche und backend (zustände)
+            this.oberflaeche.loesche();
             for (Point p : this.level.gibMap().getPoints()) {
                 this.oberflaeche.punktZeichnen(p.getX(), p.getY());
-                System.out.println("Drawing point: " + p.toString());
             }
 
             try {
