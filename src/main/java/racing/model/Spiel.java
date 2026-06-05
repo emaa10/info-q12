@@ -32,11 +32,22 @@ public class Spiel implements Runnable {
 
         int[] xKoord;
         int[] yKoord;
+        double[] xC1Koord;
+        double[] yC1Koord;
+        double[] xC2Koord;
+        double[] yC2Koord;
+        Point l;
         int k;
 
         xKoord = new int[this.level.gibMap().getPoints().length];
         yKoord = new int[this.level.gibMap().getPoints().length];
+
+        xC1Koord = new double[this.level.gibMap().getPoints().length];
+        yC1Koord = new double[this.level.gibMap().getPoints().length];
+        xC2Koord = new double[this.level.gibMap().getPoints().length];
+        yC2Koord = new double[this.level.gibMap().getPoints().length];
         k = 0;
+        l = this.level.gibMap().getStartFinishPoint();
 
         for (Point p : this.level.gibMap().getPoints()) {
             this.oberflaeche.punktZeichnen(
@@ -45,17 +56,77 @@ public class Spiel implements Runnable {
             );
             xKoord[k] = 14 * p.getX() + 32;
             yKoord[k] = 7 * p.getY() + 44;
+
+            double dx;
+            double dy;
+            double xc1;
+            double yc1;
+            double xc2;
+            double yc2;
+
+            if (k == 0) {
+                dx =
+                    (14 * p.getX() + 32) -
+                    (14 * this.level.gibMap().getStartFinishPoint().getX() +
+                        32);
+                dy =
+                    (7 * p.getY() + 44) -
+                    (7 * this.level.gibMap().getStartFinishPoint().getY() + 44);
+
+                xc1 = (14 * l.getX() + 32) + dx * 0.33;
+                yc1 = (7 * l.getY() + 44) + dy * 0.33;
+
+                xc2 = (14 * p.getX() + 32) - dx * 0.33;
+                yc2 = (7 * p.getY() + 44) - dy * 0.33;
+            } else if (k == this.level.gibMap().getPoints().length - 1) {
+                dx =
+                    (14 * this.level.gibMap().getStartFinishPoint().getX() +
+                        32) - (14 * p.getX() + 32);
+                dy =
+                    (7 * this.level.gibMap().getStartFinishPoint().getY() +
+                        44) - (7 * p.getY() + 44);
+
+                xc1 = (14 * l.getX() + 32) + dx * 0.33;
+                yc1 = (7 * l.getY() + 44) + dy * 0.33;
+
+                xc2 = (14 * p.getX() + 32) - dx * 0.33;
+                yc2 = (7 * p.getY() + 44) - dy * 0.33;
+            } else {
+                dx = (14 * p.getX() + 32) - (14 * l.getX() + 32);
+                dy = (7 * p.getY() + 44) - (7 * l.getY() + 44);
+
+                xc1 = (14 * l.getX() + 32) + dx * 0.33;
+                yc1 = (7 * l.getY() + 44) + dy * 0.33;
+
+                xc2 = (14 * p.getX() + 32) - dx * 0.33;
+                yc2 = (7 * p.getY() + 44) - dy * 0.33;
+            }
+            xC1Koord[k] = xc1;
+            yC1Koord[k] = yc1;
+            xC2Koord[k] = xc2;
+            yC2Koord[k] = yc2;
             k++;
+            l = p;
         }
         this.oberflaeche.startEndPunktZeichnen(
             14 * this.level.gibMap().getStartFinishPoint().getX() + 32,
             7 * this.level.gibMap().getStartFinishPoint().getY() + 44
         );
-        this.oberflaeche.streckeZeichnen(
+        //this.oberflaeche.streckeZeichnen(
+        //    14 * this.level.gibMap().getStartFinishPoint().getX() + 32,
+        //    7 * this.level.gibMap().getStartFinishPoint().getY() + 44,
+        //    xKoord,
+        //    yKoord
+        //);
+        this.oberflaeche.streckeZeichnenBezier(
             14 * this.level.gibMap().getStartFinishPoint().getX() + 32,
             7 * this.level.gibMap().getStartFinishPoint().getY() + 44,
             xKoord,
-            yKoord
+            yKoord,
+            xC1Koord,
+            yC1Koord,
+            xC2Koord,
+            yC2Koord
         );
         // Note:
         // Scale:
