@@ -29,15 +29,33 @@ public class Spiel implements Runnable {
     // game loop ihr deutschen
     public void spieleKreis() {
         this.oberflaeche.loesche();
+
+        int[] xKoord;
+        int[] yKoord;
+        int k;
+
+        xKoord = new int[this.level.gibMap().getPoints().length];
+        yKoord = new int[this.level.gibMap().getPoints().length];
+        k = 0;
+
         for (Point p : this.level.gibMap().getPoints()) {
             this.oberflaeche.punktZeichnen(
                 14 * p.getX() + 32,
                 7 * p.getY() + 44
             );
+            xKoord[k] = 14 * p.getX() + 32;
+            yKoord[k] = 7 * p.getY() + 44;
+            k++;
         }
         this.oberflaeche.startEndPunktZeichnen(
             14 * this.level.gibMap().getStartFinishPoint().getX() + 32,
             7 * this.level.gibMap().getStartFinishPoint().getY() + 44
+        );
+        this.oberflaeche.streckeZeichnen(
+            14 * this.level.gibMap().getStartFinishPoint().getX() + 32,
+            7 * this.level.gibMap().getStartFinishPoint().getY() + 44,
+            xKoord,
+            yKoord
         );
         // Note:
         // Scale:

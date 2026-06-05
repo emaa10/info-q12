@@ -56,4 +56,22 @@ public class Oberflaeche {
             gc.fillText("Start-Ziel-Linie", x - 15, y - 15);
         });
     }
+
+    public void streckeZeichnen(
+        int startX,
+        int startY,
+        int[] xKoord,
+        int[] yKoord
+    ) {
+        Platform.runLater(() -> {
+            gc.beginPath();
+            gc.setLineWidth(2.5);
+            gc.moveTo(startX, startY);
+            for (int k = 0; k < xKoord.length; k++) {
+                gc.lineTo(xKoord[k], yKoord[k]);
+            }
+            gc.lineTo(startX, startY);
+            gc.stroke();
+        });
+    }
 }
