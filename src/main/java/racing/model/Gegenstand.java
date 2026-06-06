@@ -8,7 +8,7 @@ public abstract class Gegenstand implements Datenelement {
     protected int x;
     protected int y;
 
-    public void setzePos(int x, int y) {
+    public void setzePosisition(int x, int y) {
         this.x = x;
         this.y = y;
     }
