@@ -8,12 +8,12 @@ public abstract class Gegenstand implements Datenelement {
     protected int x;
     protected int y;
 
-    public void setzePosisition(int x, int y) {
+    public void setzePosition(int x, int y) {
         this.x = x;
         this.y = y;
     }
 
-    public int[] gebePosisition() {
+    public int[] gebePosition() {
         return new int[] { x, y };
     }
 }
