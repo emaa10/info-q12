@@ -13,7 +13,7 @@ public abstract class Gegenstand implements Datenelement {
         this.y = y;
     }
 
-    public int[] gebePos() {
+    public int[] gebePosisition() {
         return new int[] { x, y };
     }
 }

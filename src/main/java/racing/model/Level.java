@@ -22,7 +22,7 @@ public class Level {
         } else {
             objekt = gegenstand;
         }
-        objekt.setzePosition(x, y);
+        objekt.setzePosisition(x, y);
         gegenstaende.fuegeHintenEin(objekt);
     }
 
