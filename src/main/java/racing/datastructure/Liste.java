@@ -63,4 +63,24 @@ public class Liste {
     public Listenelement gibAnfang() {
         return anfang;
     }
+
+    public boolean entferneElement(Datenelement daten) {
+        if(istLeer()) {
+            return false;
+        }
+        Knoten aktuell = (Knoten) anfang;
+        if(aktuell.gebeDaten() == daten) {
+            anfang = aktuell.gebeNachfolger();
+            return true;
+        }
+        while(!aktuell.gebeNachfolger().istAbschluss()) {
+            Knoten naechster = (Knoten) aktuell.gebeNachfolger();
+            if(naechster.gebeDaten() == daten) {
+                aktuell.setzeNachfolger(naechster.gebeNachfolger());
+                return true;
+            }
+            aktuell = naechster;
+        }
+        return false;
+    }
 }
