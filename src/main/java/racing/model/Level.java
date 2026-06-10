@@ -35,7 +35,7 @@ public class Level {
     }
 
     public void entferneGegenstand(Gegenstand gegenstand) {
-        //entspricht in leebmanns diagramm: return instance()
+        // Entspricht in geg. Diagramm (vgl. lb): returnInstance().
         gegenstaende.entferneElement(gegenstand);
         pool.fuegeHintenEin(gegenstand);
     }
