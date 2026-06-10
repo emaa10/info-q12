@@ -1,6 +1,6 @@
 package racing.datastructure;
 
-// speichert ein datenelement und verweist auf seinen nachfolger
+// speichert ein Datenelement und verweist auf seinen Nachfolger
 public class Knoten implements Listenelement {
 
     private Datenelement daten;
