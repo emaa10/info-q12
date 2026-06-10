@@ -5,13 +5,13 @@ import racing.view.Oberflaeche;
 
 public class Kontrolleur implements Runnable {
 
-    // oberfläche und spiel initialisieren
+    // Oberfläche und Spiel deklarieren
     private final Oberflaeche oberflaeche;
     private final Spiel spiel;
 
     private volatile boolean aktiv;
 
-    // controller initialisieren (constructor)
+    // Konstruktur für den controller, Attribute darin initialisieren
     public Kontrolleur(Oberflaeche oberflaeche, Spiel spiel) {
         this.oberflaeche = oberflaeche;
         this.spiel = spiel;
