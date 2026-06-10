@@ -29,7 +29,8 @@ public class Spiel implements Runnable {
     // game loop ihr deutschen
     public void spieleKreis() {
         this.oberflaeche.loesche();
-
+        // Das gehört @jakobgraetz, bitte nicht anfassen; es ist heavily in progress.
+        // TODO:
         int[] xKoord;
         int[] yKoord;
         double[] xC1Koord;
