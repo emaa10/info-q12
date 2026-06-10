@@ -1,6 +1,6 @@
 package racing.datastructure;
 
-// ende einer liste
+// Ende einer Liste
 public class Abschluss implements Listenelement {
 
     @Override
