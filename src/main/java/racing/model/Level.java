@@ -15,9 +15,9 @@ public class Level {
     }
 
     public void platziereGegenstand(Gegenstand gegenstand, int x, int y) {
-        //entspricht in leebmanns diagramm: acquire instance()
+        // Entspricht in geg. Diagramm (vgl. lb): acquireInstance().
         Gegenstand objekt;
-        if(!pool.istLeer()) {
+        if (!pool.istLeer()) {
             objekt = (Gegenstand) pool.entferneVorne();
         } else {
             objekt = gegenstand;
@@ -39,5 +39,4 @@ public class Level {
         gegenstaende.entferneElement(gegenstand);
         pool.fuegeHintenEin(gegenstand);
     }
-
 }
