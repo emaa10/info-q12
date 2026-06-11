@@ -23,9 +23,6 @@ jobs:
           curl -L https://download2.gluonhq.com/openjfx/17.0.10/openjfx-17.0.10_linux-x64_bin-sdk.zip -o javafx.zip
           unzip javafx.zip -d javafx
       
-      - name: Debug JavaFX folder
-        run: ls -R javafx
-
       - name: Compile project
         run: |
           set -e
