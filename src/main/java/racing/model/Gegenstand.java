@@ -10,7 +10,7 @@ public abstract class Gegenstand implements Datenelement {
 
     public void setzePosition(int x, int y) {
         this.x = x;
-        this.y = y
+        this.y = y;
     }
 
     public int[] gebePosition() {
