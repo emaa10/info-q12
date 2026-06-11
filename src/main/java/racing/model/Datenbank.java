@@ -22,9 +22,9 @@ public class Datenbank {
 
     private void erstelleTabellen() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
-            stmt.executeUpdate(
+            stmt.executeUpdate( // siehe https://www.sqlitetutorial.net/sqlite-create-table/ für syntax
                 "CREATE TABLE IF NOT EXISTS spielstand (" +
-                "  id           INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "  id           INTEGER PRIMARY KEY AUTOINCREMENT," +// automatischer primary key durch autoincrement, damit wir nicht selber hochzählen müssen
                 "  spieler_name TEXT    NOT NULL," +
                 "  level_id     INTEGER NOT NULL," +
                 "  punkte       INTEGER NOT NULL," +
@@ -38,16 +38,17 @@ public class Datenbank {
                 "  spieler_name  TEXT    NOT NULL," +
                 "  level_id      INTEGER NOT NULL," +
                 "  freigeschaltet INTEGER NOT NULL DEFAULT 0," +
-                "  UNIQUE(spieler_name, level_id)" +
+                "  UNIQUE(spieler_name, level_id)" + //jeder spieler kann nur ein eintrag pro level haben
                 ")"
             );
         }
     }
 
+    // datenbank.speichereSpielstand("Emanuel", 1, 3500, 63_000L);
     public void speichereSpielstand(String spielerName, int levelId, int punkte, long zeitMs) {
         if (connection == null) return;
         String sql = "INSERT INTO spielstand (spieler_name, level_id, punkte, zeit_ms) VALUES (?, ?, ?, ?)";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (PreparedStatement ps = connection.prepareStatement(sql)) { // siehe https://www.sqlitetutorial.net/sqlite-java/insert/ für syntax, sql injection verhindert
             ps.setString(1, spielerName);
             ps.setInt(2, levelId);
             ps.setInt(3, punkte);
@@ -55,16 +56,19 @@ public class Datenbank {
             ps.executeUpdate();
         } catch (SQLException e) {
             System.err.println("Datenbankfehler beim Speichern: " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("unexpected error: " + e.getMessage());
         }
     }
 
+    // List<SpielstandEintrag> top10 = datenbank.ladeHighscores(1);
     public List<SpielstandEintrag> ladeHighscores(int levelId) {
         List<SpielstandEintrag> ergebnisse = new ArrayList<>();
-        if (connection == null) return ergebnisse;
+        if (connection == null) return ergebnisse; // könnte auch error raisen, mal schauen
         String sql =
             "SELECT spieler_name, level_id, punkte, zeit_ms, erstellt_am " +
             "FROM spielstand WHERE level_id = ? " +
-            "ORDER BY punkte DESC, zeit_ms ASC LIMIT 10";
+            "ORDER BY punkte DESC, zeit_ms ASC LIMIT 10"; // sortierung
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setInt(1, levelId);
             ResultSet rs = ps.executeQuery();
@@ -79,10 +83,13 @@ public class Datenbank {
             }
         } catch (SQLException e) {
             System.err.println("Datenbankfehler beim Laden: " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("unexpected error: " + e.getMessage());
         }
-        return ergebnisse;
+        return ergebnisse; //format: spielerName | levelId | punkte | zeitMs | erstelltAm (siehe constructor von SpielstandEintrag)
     }
 
+    // datenbank.schalteFreiLevel("Emanuel", 2);
     public void schalteFreiLevel(String spielerName, int levelId) {
         if (connection == null) return;
         String sql =
@@ -97,6 +104,7 @@ public class Datenbank {
         }
     }
 
+    // if (datenbank.istLevelFreigeschaltet("Emanuel", 2))
     public boolean istLevelFreigeschaltet(String spielerName, int levelId) {
         if (connection == null) return false;
         String sql =
