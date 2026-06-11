@@ -29,8 +29,11 @@ jobs:
 
           mkdir -p out
 
+          echo "=== Java files ==="
+          find . -name "*.java"
+
           javac \
             --module-path "$FX" \
             --add-modules javafx.controls,javafx.fxml \
             -d out \
-            $(find src/main/java -name "*.java")
+            $(find . -name "*.java")
