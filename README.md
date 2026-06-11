@@ -36,8 +36,10 @@ Voraussetzungen: **JDK 17** und das **JavaFX 17 SDK** ([Download](https://gluonh
 export FX=/pfad/zu/javafx-sdk-17/lib
 
 # kompilieren
-javac --module-path "$FX" --add-modules javafx.controls -d out $(find src/main/java -name "*.java")
+javac --module-path "$FX" --add-modules javafx.controls -cp lib/sqlite-jdbc-3.46.0.0.jar -d out $(find src/main/java -name "*.java")
 
 # starten
-java --module-path "$FX" --add-modules javafx.controls -cp out racing.Main
+java --module-path "$FX" --add-modules javafx.controls -cp out:lib/sqlite-jdbc-3.46.0.0.jar racing.Main
 ```
+
+> **Windows:** Trennzeichen im `-cp`-Flag ist `;` statt `:`, also `out;lib\sqlite-jdbc-3.46.0.0.jar`

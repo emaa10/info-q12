@@ -15,6 +15,7 @@ public class Spiel implements Runnable {
     public Spiel(Oberflaeche oberflaeche) {
         this.oberflaeche = oberflaeche;
         this.datenbank = new Datenbank();
+        this.datenbank.verbinde();
         this.spieler = new Spieler[0];
         this.level = new Level(new Map());
         // level wird später z. B. mit einer Map erzeugt
@@ -150,6 +151,7 @@ public class Spiel implements Runnable {
 
     public void stoppe() {
         laeuft = false;
+        datenbank.trenneVerbindung();
     }
 
     public Spieler[] gibSpieler() {
