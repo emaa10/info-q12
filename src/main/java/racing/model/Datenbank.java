@@ -13,10 +13,13 @@ public class Datenbank {
 
     public void verbinde() {
         try {
+            Class.forName("org.sqlite.JDBC");
             connection = DriverManager.getConnection("jdbc:sqlite:" + DB_PFAD); // jdbc path: jdbc:sqlite:/home/user/racing_game.db (pfad nciht in git, absicht wegen git und so weiter)
             erstelleTabellen();
         } catch (SQLException e) {
             System.err.println("Datenbankfehler beim Verbinden: " + e.getMessage());
+        } catch (ClassNotFoundException e) {
+            System.err.println("Datenbankfehler: JDBC-Treiber nicht gefunden");
         }
     }
 
