@@ -34,6 +34,9 @@ Voraussetzungen: **JDK 17** und das **JavaFX 17 SDK** ([Download](https://gluonh
 
 ```bash
 export FX=/pfad/zu/javafx-sdk-17/lib
+# MAC setup
+https://gluonhq.com/products/javafx/
+export FX=/Users/emanuel/javafx-sdk-17.0.19/lib
 
 # kompilieren
 javac --module-path "$FX" --add-modules javafx.controls -cp lib/sqlite-jdbc-3.46.0.0.jar -d out $(find src/main/java -name "*.java")
