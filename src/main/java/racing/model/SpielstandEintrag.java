@@ -1,6 +1,8 @@
 package racing.model;
 
-public class SpielstandEintrag {
+import racing.datastructure.Datenelement;
+
+public class SpielstandEintrag implements Datenelement {
 
     private final String spielerName;
     private final int levelId;

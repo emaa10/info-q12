@@ -1,8 +1,7 @@
 package racing.model;
 
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
+import racing.datastructure.Liste;
 
 public class Datenbank {
 
@@ -64,9 +63,9 @@ public class Datenbank {
         }
     }
 
-    // List<SpielstandEintrag> top10 = datenbank.ladeHighscores(1);
-    public List<SpielstandEintrag> ladeHighscores(int levelId) {
-        List<SpielstandEintrag> ergebnisse = new ArrayList<>();
+    // Liste top10 = datenbank.ladeHighscores(1);
+    public Liste ladeHighscores(int levelId) {
+        Liste ergebnisse = new Liste();
         if (connection == null) return ergebnisse; // könnte auch error raisen, mal schauen
         String sql =
             "SELECT spieler_name, level_id, punkte, zeit_ms, erstellt_am " +
@@ -76,7 +75,7 @@ public class Datenbank {
             ps.setInt(1, levelId);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
-                ergebnisse.add(new SpielstandEintrag(
+                ergebnisse.fuegeHintenEin(new SpielstandEintrag(
                     rs.getString("spieler_name"),
                     rs.getInt("level_id"),
                     rs.getInt("punkte"),
