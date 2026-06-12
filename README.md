@@ -6,6 +6,7 @@
   - [Konzept](#konzept)
   - [Technologien](#technologien)
   - [Build & Start](#build-start)
+- [MAC setup](#mac-setup)
 - [kompilieren](#kompilieren)
 - [starten](#starten)
 <!-- /TOC -->
