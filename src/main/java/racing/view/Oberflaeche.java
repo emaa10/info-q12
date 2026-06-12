@@ -50,6 +50,15 @@ public class Oberflaeche {
         Platform.runLater(() -> gc.clearRect(0, 0, BREITE, HOEHE));
     }
 
+    public void testSzene() {
+    Platform.runLater(() -> {
+        gc.clearRect(0, 0, BREITE, HOEHE);
+        gc.drawImage(baumBild, 200, 200, 100, 100);
+        gc.drawImage(baumBild, 400, 300, 100, 100);
+        gc.drawImage(baumBild, 600, 150, 100, 100);
+        });
+    }
+
     public void punktZeichnen(int x, int y) {
         Platform.runLater(() -> {
             gc.setFill(Color.BLUE);
