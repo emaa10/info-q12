@@ -6,6 +6,7 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
+import javafx.scene.image.Image;
 
 // view-teil im MVC
 public class Oberflaeche {
@@ -16,16 +17,24 @@ public class Oberflaeche {
     private final Pane wurzel;
     private final Canvas leinwand;
     private final GraphicsContext gc;
+    private final Image baumBild;
 
     public Oberflaeche() {
         this.leinwand = new Canvas(BREITE, HOEHE);
         this.gc = leinwand.getGraphicsContext2D();
         this.wurzel = new Pane(leinwand);
         this.wurzel.setStyle("-fx-background-color: white;");
+        this.baumBild = new Image(getClass().getResourceAsStream("/images/tree.png"));
     }
 
     public Parent gibWurzel() {
         return wurzel;
+    }
+
+    public void baumZeichnen(int x, int y) {
+    Platform.runLater(() -> {
+        gc.drawImage(baumBild, x, y, 100, 100);
+        });
     }
 
     public void registriereEingabe() {

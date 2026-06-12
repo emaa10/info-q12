@@ -6,7 +6,6 @@ import javafx.stage.Stage;
 import racing.controller.Kontrolleur;
 import racing.model.Spiel;
 import racing.view.Oberflaeche;
-import racing.model.Baum;
 
 public class Main extends Application {
 
@@ -33,7 +32,7 @@ public class Main extends Application {
         buehne.setMaxHeight(HOEHE);
         buehne.setMaxWidth(BREITE);
         buehne.show();
-        Baum baum = new Baum();
+        oberflaeche.baumZeichnen(300, 200);
 
         gameThread = new Thread(spiel, "GameThread");
         controllerThread = new Thread(kontrolleur, "ControllerThread");
