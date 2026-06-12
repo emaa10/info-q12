@@ -34,9 +34,7 @@ public class MapView {
         int[] xKoord,
         int[] yKoord
     ) {
-        System.out.println("HEllo");
         Platform.runLater(() -> {
-            System.out.println("HEllo from the insinde");
             gc.beginPath();
             gc.setLineWidth(2.5);
             gc.moveTo(startX, startY);

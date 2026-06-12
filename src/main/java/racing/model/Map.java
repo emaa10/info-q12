@@ -133,14 +133,17 @@ public class Map {
             k++;
         }
         this.view.streckeZeichnen(
-            this.startFinishPoint.getX(),
-            this.startFinishPoint.getY(),
+            14 * this.startFinishPoint.getX() + 32,
+            7 * this.startFinishPoint.getY() + 44,
             xKoord,
             yKoord
         );
+
+        this.view.startEndPunktZeichnen(
+            14 * this.startFinishPoint.getX() + 32,
+            7 * this.startFinishPoint.getY() + 44
+        );
         /*
-        // Das gehört @jakobgraetz, bitte nicht anfassen; es ist heavily in progress.
-        // TODO:
         int[] xKoord;
         int[] yKoord;
         double[] xC1Koord;
@@ -210,18 +213,7 @@ public class Map {
             k++;
             l = p;
         }
-        this.oberflaeche
-            .getMapView()
-            .startEndPunktZeichnen(
-                14 * this.level.gibMap().getStartFinishPoint().getX() + 32,
-                7 * this.level.gibMap().getStartFinishPoint().getY() + 44
-            );
-        //this.oberflaeche.streckeZeichnen(
-        //    14 * this.level.gibMap().getStartFinishPoint().getX() + 32,
-        //    7 * this.level.gibMap().getStartFinishPoint().getY() + 44,
-        //    xKoord,
-        //    yKoord
-        //);
+
         this.oberflaeche
             .getMapView()
             .streckeZeichnenBezier(
