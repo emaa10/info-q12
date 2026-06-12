@@ -14,6 +14,7 @@ public class Spiel implements Runnable {
 
     public Spiel(Oberflaeche oberflaeche) {
         this.oberflaeche = oberflaeche;
+        this.oberflaeche.loesche();
         this.datenbank = new Datenbank();
         this.datenbank.verbinde();
         this.spieler = new Spieler[0];
@@ -29,8 +30,6 @@ public class Spiel implements Runnable {
 
     // game loop ihr deutschen
     public void spieleKreis() {
-        this.oberflaeche.loesche();
-
         while (laeuft) {
             try {
                 Thread.sleep(16); // ca. 60 Bilder pro Sekunde

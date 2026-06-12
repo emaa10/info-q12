@@ -34,7 +34,9 @@ public class MapView {
         int[] xKoord,
         int[] yKoord
     ) {
+        System.out.println("HEllo");
         Platform.runLater(() -> {
+            System.out.println("HEllo from the insinde");
             gc.beginPath();
             gc.setLineWidth(2.5);
             gc.moveTo(startX, startY);
@@ -43,6 +45,8 @@ public class MapView {
                 // bezierCurveTo(double xc1, double yc1, double xc2, double yc2, double x1, double y1)
             }
             gc.lineTo(startX, startY);
+            gc.stroke();
+            gc.closePath();
             gc.stroke();
         });
     }
