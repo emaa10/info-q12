@@ -27,6 +27,10 @@ public class Main extends Application {
         Scene szene = new Scene(oberflaeche.gibWurzel(), BREITE, HOEHE);
         buehne.setTitle("Rennspiel");
         buehne.setScene(szene);
+        buehne.setMinHeight(HOEHE);
+        buehne.setMinWidth(BREITE);
+        buehne.setMaxHeight(HOEHE);
+        buehne.setMaxWidth(BREITE);
         buehne.show();
 
         gameThread = new Thread(spiel, "GameThread");
