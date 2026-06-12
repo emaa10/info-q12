@@ -32,6 +32,7 @@ public class Main extends Application {
         buehne.setMaxHeight(HOEHE);
         buehne.setMaxWidth(BREITE);
         buehne.show();
+        Baum baum = new Baum();
 
         gameThread = new Thread(spiel, "GameThread");
         controllerThread = new Thread(kontrolleur, "ControllerThread");
