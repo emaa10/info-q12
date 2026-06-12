@@ -40,7 +40,7 @@ https://gluonhq.com/products/javafx/
 export FX=/Users/emanuel/javafx-sdk-17.0.19/lib
 
 # kompilieren
-javac --module-path "$FX" --add-modules javafx.controls -cp "lib/*" -d out $(find src/main/java -name "*.java")
+javac --module-path "$FX" --add-modules javafx.controls,javafx.fxml,javafx.graphics -cp "lib/*" -d out $(find src/main/java -name "*.java")
 
 # starten
 java --module-path "$FX" --add-modules javafx.controls -cp "out:lib/*" racing.Main
