@@ -268,17 +268,9 @@ public class Map {
     }
 
     // Utility method.
-    public void mod65Arr(int[] arr) {
+    private void mod65Arr(int[] arr) {
         for (int k = 0; k < arr.length; k++) {
             arr[k] = arr[k] % 65;
         }
-    }
-
-    public Point[] getPoints() {
-        return this.points;
-    }
-
-    public Point getStartFinishPoint() {
-        return this.startFinishPoint;
     }
 }
