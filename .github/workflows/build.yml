@@ -1,0 +1,41 @@
+name: Java Compile 
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Download JavaFX
+        run: |
+          curl -L https://download2.gluonhq.com/openjfx/17.0.10/openjfx-17.0.10_linux-x64_bin-sdk.zip -o javafx.zip
+          unzip javafx.zip -d javafx
+      
+      - name: Compile project
+        run: |
+          set -e
+
+          FX=javafx/javafx-sdk-17.0.10/lib
+
+          mkdir -p out
+
+          javac \
+            --module-path "$FX" \
+            --add-modules javafx.controls,javafx.fxml,javafx.graphics \
+            -d out \
+            $(find src/main/java -name "*.java")
+
+          echo "OK: compiled"
+          find out -name "*.class"
