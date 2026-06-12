@@ -11,6 +11,7 @@ import java.util.Date;
 
 public class Map {
 
+    private racing.view.MapView view;
     private int[][] matrix;
     private int seed;
     private int modulus;
@@ -26,7 +27,7 @@ public class Map {
     private int[] startFinishCoordinates;
 
     // With seed as a parameter:
-    public Map(int seed) {
+    public Map(int seed, racing.view.MapView mapView) {
         this.matrix = new int[64][64];
         this.seed = seed;
         this.modulus = (1 << 16) + 1;
@@ -36,6 +37,7 @@ public class Map {
         this.pointCoordinates = new int[2 * this.numberOfPoints];
         this.points = new Point[this.numberOfPoints];
         this.startFinishCoordinates = new int[2];
+        this.view = mapView;
 
         lcg(
             this.seed,
@@ -70,7 +72,7 @@ public class Map {
     }
 
     // Without seed as a parameter:
-    public Map() {
+    public Map(racing.view.MapView mapView) {
         // This will be in int range and is good until 18 Jan 2038.
         // Date.getTime() returns a long by default: until 18th of January 2038, dividing by 1000 is
         // enough to cast this into an int.
@@ -85,6 +87,7 @@ public class Map {
         this.pointCoordinates = new int[2 * this.numberOfPoints];
         this.points = new Point[this.numberOfPoints];
         this.startFinishCoordinates = new int[2];
+        this.view = mapView;
 
         lcg(
             this.seed,
