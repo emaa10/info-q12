@@ -6,6 +6,7 @@ import javafx.stage.Stage;
 import racing.controller.Kontrolleur;
 import racing.model.Spiel;
 import racing.view.Oberflaeche;
+import racing.model.Baum;
 
 public class Main extends Application {
 
