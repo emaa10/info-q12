@@ -53,9 +53,9 @@ public class Oberflaeche {
     public void testSzene() {
     Platform.runLater(() -> {
         gc.clearRect(0, 0, BREITE, HOEHE);
-        gc.drawImage(baumBild, 200, 200, 100, 100);
-        gc.drawImage(baumBild, 400, 300, 100, 100);
-        gc.drawImage(baumBild, 600, 150, 100, 100);
+        gc.drawImage(baumBild, 860, 500, 100, 100);
+        gc.drawImage(baumBild, 120, 120, 100, 100);
+        gc.drawImage(baumBild, 500, 500, 100, 100);
         });
     }
 
