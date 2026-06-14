@@ -32,7 +32,6 @@ public class Main extends Application {
         buehne.setMaxHeight(HOEHE);
         buehne.setMaxWidth(BREITE);
         buehne.show();
-        oberflaeche.testSzene();
 
         gameThread = new Thread(spiel, "GameThread");
         controllerThread = new Thread(kontrolleur, "ControllerThread");

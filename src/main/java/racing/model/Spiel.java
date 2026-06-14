@@ -30,6 +30,9 @@ public class Spiel implements Runnable {
     // game loop ihr deutschen
     public void spieleKreis() {
         this.oberflaeche.loesche();
+        this.oberflaeche.baumZeichnen(200, 200);
+        this.oberflaeche.baumZeichnen(400, 300);
+        this.oberflaeche.baumZeichnen(600, 150);
         // Das gehört @jakobgraetz, bitte nicht anfassen; es ist heavily in progress.
         // TODO:
         int[] xKoord;
