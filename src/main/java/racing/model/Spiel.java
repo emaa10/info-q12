@@ -1,5 +1,7 @@
 package racing.model;
 
+import racing.datastructure.Knoten;
+import racing.datastructure.Listenelement;
 import racing.view.Oberflaeche;
 
 // model-teil
@@ -29,6 +31,10 @@ public class Spiel implements Runnable {
 
     // game loop ihr deutschen
     public void spieleKreis() {
+        level.platziereGegenstand(new Baum(), 200, 200);
+        level.platziereGegenstand(new Baum(), 400, 300);
+        level.platziereGegenstand(new Baum(), 600, 150);
+
         this.oberflaeche.loesche();
         // Das gehört @jakobgraetz, bitte nicht anfassen; es ist heavily in progress.
         // TODO:
@@ -130,6 +136,14 @@ public class Spiel implements Runnable {
             xC2Koord,
             yC2Koord
         );
+        Listenelement el = level.gibGegenstaende().gibAnfang();
+        while (!el.istAbschluss()) {
+            Gegenstand g = (Gegenstand) ((Knoten) el).gebeDaten();
+            int[] pos = g.gebePosition();
+            this.oberflaeche.baumZeichnen(pos[0], pos[1]);
+            el = ((Knoten) el).gebeNachfolger();
+        }
+
         // Note:
         // Scale:
         // x_max = 960; x_rand,max = 64 => Faktor 14 (x_s,min = 0, x_s,max = 896)
