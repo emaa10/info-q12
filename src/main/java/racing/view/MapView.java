@@ -39,6 +39,18 @@ public class MapView {
         }
     }
 
+    public void drawLine(String c, int x1, int y1, int x2, int y2) {
+        Platform.runLater(() -> {
+            gc.setStroke(Color.web(c, 1.0));
+            gc.beginPath();
+            gc.setLineWidth(2.5);
+            gc.moveTo(x1, y1);
+            gc.lineTo(x2, y2);
+            gc.stroke();
+            gc.closePath();
+        });
+    }
+
     public void startEndPunktZeichnen(int x, int y) {
         Platform.runLater(() -> {
             gc.setFill(Color.RED);
