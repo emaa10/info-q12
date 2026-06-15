@@ -22,7 +22,7 @@ public class Oberflaeche {
         this.leinwand = new Canvas(BREITE, HOEHE);
         this.gc = leinwand.getGraphicsContext2D();
         this.wurzel = new Pane(leinwand);
-        this.wurzel.setStyle("-fx-background-color: white;");
+        this.wurzel.setStyle("-fx-background-color: chartreuse;");
         this.mapView = new MapView(this.gc);
     }
 
