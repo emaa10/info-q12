@@ -13,8 +13,6 @@ public class MapView {
     }
 
     public void drawPoint(String c, int x, int y, int r) {
-        // https://docs.oracle.com/javase/8/javafx/api/javafx/scene/paint/Color.html
-        // public static Color web(java.lang.String colorString, double opacity)
         Platform.runLater(() -> {
             gc.setFill(Color.web(c, 1.0));
             gc.fillOval(x - r, y - r, 2 * r, 2 * r);
