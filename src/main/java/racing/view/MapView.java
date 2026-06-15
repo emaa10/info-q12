@@ -30,7 +30,7 @@ public class MapView {
 
     public void drawPoints(String c, int[] xArr, int[] yArr, int r) {
         if (xArr.length != yArr.length) {
-            System.out.println("Error: xArr.length != yArr.length");
+            System.out.println("Error: xArr.length != yArr.length!");
             return;
         }
 
@@ -53,17 +53,18 @@ public class MapView {
 
     public void drawPoints(String c, int[] xArr, int[] yArr) {
         if (xArr.length != yArr.length) {
-            System.out.println("Error: xArr.length != yArr.length");
+            System.out.println("Error: xArr.length != yArr.length!");
             return;
         }
 
-        for (k = 0; k < xArr.length - 1; k++) {
+        for (int k = 0; k < xArr.length - 1; k++) {
             drawLine(c, xArr[k], yArr[k], xArr[k + 1], yArr[k + 1]);
             if (k == xArr.length - 2) {
-                drawLine(c, xArr[0], yArr[0], xArr[1], yArr[1])
+                drawLine(c, xArr[k + 1], yArr[k + 1], xArr[0], yArr[0]);
             }
         }
     }
+
     /*
     public void streckeZeichnen(
         int startX,
