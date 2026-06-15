@@ -51,7 +51,7 @@ public class MapView {
         });
     }
 
-    public void drawPoints(String c, int[] xArr, int[] yArr) {
+    public void drawLines(String c, int[] xArr, int[] yArr) {
         if (xArr.length != yArr.length) {
             System.out.println("Error: xArr.length != yArr.length!");
             return;
