@@ -8,11 +8,12 @@
 package racing.model;
 
 import java.util.Date;
+// TODO: Stack selber implementieren, war faul
+import java.util.Stack;
 
 public class Map {
 
     private racing.view.MapView view;
-    private int[][] matrix;
     private int seed;
     private int modulus;
     private int multiplier;
@@ -25,10 +26,10 @@ public class Map {
     // und markiert das Ende jeder gefahrenen Runde und des gesamten Rennens. (vgl. Wikipedia)
     private Point startFinishPoint;
     private int[] startFinishCoordinates;
+    private Stack<Point> convexHull;
 
     // With seed as a parameter:
     public Map(int seed, racing.view.MapView mapView) {
-        this.matrix = new int[64][64];
         this.seed = seed;
         this.modulus = (1 << 16) + 1;
         this.multiplier = 75;
@@ -38,6 +39,7 @@ public class Map {
         this.points = new Point[this.numberOfPoints];
         this.startFinishCoordinates = new int[2];
         this.view = mapView;
+        this.convexHull = new Stack<Point>();
 
         lcg(
             this.seed,
@@ -51,8 +53,8 @@ public class Map {
 
         for (int k = 0, idx = 0; k < pointCoordinates.length; k += 2, idx++) {
             this.points[idx] = new Point(
-                pointCoordinates[k],
-                pointCoordinates[k + 1]
+                14 * pointCoordinates[k] + 32,
+                7 * pointCoordinates[k + 1] + 44
             );
         }
 
@@ -66,9 +68,10 @@ public class Map {
         );
         mod65Arr(this.startFinishCoordinates);
         this.startFinishPoint = new Point(
-            this.startFinishCoordinates[0],
-            this.startFinishCoordinates[1]
+            14 * this.startFinishCoordinates[0] + 32,
+            7 * this.startFinishCoordinates[1] + 44
         );
+        convexHull();
     }
 
     // Without seed as a parameter:
@@ -78,7 +81,6 @@ public class Map {
         // enough to cast this into an int.
         int i = (int) (new Date().getTime() / 1000);
 
-        this.matrix = new int[64][64];
         this.seed = i;
         this.modulus = (1 << 16) + 1;
         this.multiplier = 75;
@@ -88,6 +90,7 @@ public class Map {
         this.points = new Point[this.numberOfPoints];
         this.startFinishCoordinates = new int[2];
         this.view = mapView;
+        this.convexHull = new Stack<Point>();
 
         lcg(
             this.seed,
@@ -101,8 +104,8 @@ public class Map {
 
         for (int k = 0, idx = 0; k < pointCoordinates.length; k += 2, idx++) {
             this.points[idx] = new Point(
-                pointCoordinates[k],
-                pointCoordinates[k + 1]
+                14 * pointCoordinates[k] + 32,
+                7 * pointCoordinates[k + 1] + 44
             );
         }
 
@@ -116,10 +119,10 @@ public class Map {
         );
         mod65Arr(this.startFinishCoordinates);
         this.startFinishPoint = new Point(
-            this.startFinishCoordinates[0],
-            this.startFinishCoordinates[1]
+            14 * this.startFinishCoordinates[0] + 32,
+            7 * this.startFinishCoordinates[1] + 44
         );
-
+        /*
         int[] xKoord;
         int[] yKoord;
         xKoord = new int[points.length];
@@ -143,6 +146,7 @@ public class Map {
             14 * this.startFinishPoint.getX() + 32,
             7 * this.startFinishPoint.getY() + 44
         );
+         */
         /*
         int[] xKoord;
         int[] yKoord;
@@ -235,6 +239,15 @@ public class Map {
         // y + 44 (y_st, min = 44, y_st,max = 556) -> vgl. oben, nur eben in vertikaler Richtung
         // Damit die Punkte nicht in irgendeinem Eck vergammeln
         // */
+
+        convexHull();
+        int[] xArr = new int[this.convexHull.size()];
+        int[] yArr = new int[this.convexHull.size()];
+        for (int k = 0; k < this.convexHull.size(); k++) {
+            xArr[k] = this.convexHull.get(k).getX();
+            yArr[k] = this.convexHull.get(k).getY();
+        }
+        this.view.drawPoints("red", xArr, yArr);
     }
 
     // "A linear congruential generator (LCG) is an algorithm that yields a sequence of pseudo-randomized
@@ -264,5 +277,53 @@ public class Map {
         for (int k = 0; k < arr.length; k++) {
             arr[k] = arr[k] % 65;
         }
+    }
+
+    public void convexHull() {
+        int minX = Integer.MAX_VALUE;
+        int minIdx = 0;
+
+        for (int k = 0; k < this.points.length; k++) {
+            if (points[k].getX() <= minX) {
+                minX = points[k].getX();
+                minIdx = k;
+            }
+        }
+
+        Stack<Point> result = new Stack<Point>();
+
+        int considerIdx = minIdx;
+
+        do {
+            result.push(points[considerIdx]);
+            this.convexHull.push(points[considerIdx]);
+
+            int nextIdx = (considerIdx + 1) % points.length;
+
+            for (
+                int contenderIdx = 0;
+                contenderIdx < points.length;
+                contenderIdx++
+            ) {
+                if (
+                    isCounterClockwise(
+                        points[considerIdx],
+                        points[nextIdx],
+                        points[contenderIdx]
+                    )
+                ) {
+                    nextIdx = contenderIdx;
+                }
+            }
+
+            considerIdx = nextIdx;
+        } while (considerIdx != minIdx);
+    }
+
+    private boolean isCounterClockwise(Point a, Point b, Point c) {
+        return (
+            (c.getY() - a.getY()) * (b.getX() - a.getX()) >
+            (b.getY() - a.getY()) * (c.getX() - a.getX())
+        );
     }
 }
