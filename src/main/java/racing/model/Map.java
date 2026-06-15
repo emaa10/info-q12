@@ -247,7 +247,7 @@ public class Map {
             xArr[k] = this.convexHull.get(k).getX();
             yArr[k] = this.convexHull.get(k).getY();
         }
-        this.view.drawPoints("red", xArr, yArr);
+        this.view.drawLines("red", xArr, yArr);
     }
 
     // "A linear congruential generator (LCG) is an algorithm that yields a sequence of pseudo-randomized
