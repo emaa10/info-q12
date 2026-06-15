@@ -1,5 +1,7 @@
 package racing.model.util;
 
+import java.util.Date;
+
 public class LCG {
 
     private int seed;
@@ -21,6 +23,16 @@ public class LCG {
         this.increment = 0;
     }
 
+    public LCG() {
+        // This will be in int range and is good until 18 Jan 2038.
+        // Date.getTime() returns a long by default: until 18th of January 2038, dividing by 1000 is
+        // enough to cast this into an int.
+        this.seed = int i = (int) (new Date().getTime() / 1000);
+        this.modulus = (1 << 16) + 1;
+        this.multiplier = 75;
+        this.increment = 0;
+    }
+
     // "A linear congruential generator (LCG) is an algorithm that yields a sequence of pseudo-randomized
     // numbers calculated with a discontinuous piecewise linear equation. The method represents one of the
     // oldest and best-known pseudorandom number generator algorithms. The theory behind them is relatively
@@ -36,10 +48,12 @@ public class LCG {
         int[] randomNumbers,
         int numberOfRandomNumbers
     ) {
-        randomNumbers[0] = seed;
+        randomNumbers[0] = this.seed;
 
         for (int i = 1; i < numberOfRandomNumbers; i++) {
             randomNumbers[i] = ((randomNumbers[i - 1] * a) + c) % m;
         }
     }
+
+    public void randomNumbers()
 }
