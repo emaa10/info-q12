@@ -12,6 +12,17 @@ public class MapView {
         this.gc = gc;
     }
 
+    public void drawPoint(String c, int x, int y, int r) {
+        // https://docs.oracle.com/javase/8/javafx/api/javafx/scene/paint/Color.html
+    }
+
+    public void drawPoints(String c, int[] xArr, int[] yArr, int r) {
+        if (xArr.length != yArr.length) {
+            System.out.println("Error: xArr.length != yArr.length");
+            return;
+        }
+    }
+
     public void punktZeichnen(int x, int y) {
         Platform.runLater(() -> {
             gc.setFill(Color.BLUE);
@@ -79,3 +90,7 @@ public class MapView {
         });
     }
 }
+
+/*
+
+*/
