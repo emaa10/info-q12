@@ -51,15 +51,20 @@ public class MapView {
         });
     }
 
-    public void startEndPunktZeichnen(int x, int y) {
-        Platform.runLater(() -> {
-            gc.setFill(Color.RED);
-            gc.fillOval(x - 5, y - 5, 10, 10);
-            gc.setFill(Color.BLACK);
-            gc.fillText("Start-Ziel-Linie", x - 15, y - 15);
-        });
-    }
+    public void drawPoints(String c, int[] xArr, int[] yArr) {
+        if (xArr.length != yArr.length) {
+            System.out.println("Error: xArr.length != yArr.length");
+            return;
+        }
 
+        for (k = 0; k < xArr.length - 1; k++) {
+            drawLine(c, xArr[k], yArr[k], xArr[k + 1], yArr[k + 1]);
+            if (k == xArr.length - 2) {
+                drawLine(c, xArr[0], yArr[0], xArr[1], yArr[1])
+            }
+        }
+    }
+    /*
     public void streckeZeichnen(
         int startX,
         int startY,
@@ -110,4 +115,5 @@ public class MapView {
             gc.stroke();
         });
     }
+     */
 }
