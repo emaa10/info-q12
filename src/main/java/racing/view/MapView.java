@@ -2,14 +2,23 @@ package racing.view;
 
 import javafx.application.Platform;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
 
 public class MapView {
 
     private final GraphicsContext gc;
+    private Image gridImg;
+    private Image kerbImg;
 
     public MapView(GraphicsContext gc) {
         this.gc = gc;
+        this.gridImg = new Image(
+            getClass().getResourceAsStream("/images/grid.png")
+        );
+        this.kerbImg = new Image(
+            getClass().getResourceAsStream("/images/kerb.png")
+        );
     }
 
     public void drawPoint(String c, int x, int y, int r) {
@@ -90,7 +99,3 @@ public class MapView {
         });
     }
 }
-
-/*
-
-*/
