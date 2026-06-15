@@ -14,6 +14,11 @@ public class MapView {
 
     public void drawPoint(String c, int x, int y, int r) {
         // https://docs.oracle.com/javase/8/javafx/api/javafx/scene/paint/Color.html
+        // public static Color web(java.lang.String colorString, double opacity)
+        Platform.runLater(() -> {
+            gc.setFill(Color.web(c, 1.0));
+            gc.fillOval(x - r, y - r, 2 * r, 2 * r);
+        });
     }
 
     public void drawPoints(String c, int[] xArr, int[] yArr, int r) {
@@ -21,13 +26,10 @@ public class MapView {
             System.out.println("Error: xArr.length != yArr.length");
             return;
         }
-    }
 
-    public void punktZeichnen(int x, int y) {
-        Platform.runLater(() -> {
-            gc.setFill(Color.BLUE);
-            gc.fillOval(x - 5, y - 5, 10, 10);
-        });
+        for (int k = 0; k < xArr.length; k++) {
+            drawPoint(c, xArr[k], yArr[k], r);
+        }
     }
 
     public void startEndPunktZeichnen(int x, int y) {
