@@ -1,5 +1,6 @@
 package racing.view;
 
+import java.util.List;
 import javafx.application.Platform;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
@@ -21,6 +22,51 @@ public class MapView {
         );
     }
 
+    public void drawTrack(List<int[]> centerline, int width) {
+        Platform.runLater(() -> {
+            int n = centerline.size();
+            double[] outerX = new double[n];
+            double[] outerY = new double[n];
+            double[] innerX = new double[n];
+            double[] innerY = new double[n];
+
+            for (int i = 0; i < n; i++) {
+                int prev = (i - 1 + n) % n;
+                int next = (i + 1) % n;
+                double tx = centerline.get(next)[0] - centerline.get(prev)[0];
+                double ty = centerline.get(next)[1] - centerline.get(prev)[1];
+                double len = Math.sqrt(tx * tx + ty * ty);
+                if (len > 0) {
+                    tx /= len;
+                    ty /= len;
+                }
+                double nx = -ty;
+                double ny = tx;
+                double half = width / 2.0;
+                outerX[i] = centerline.get(i)[0] + nx * half;
+                outerY[i] = centerline.get(i)[1] + ny * half;
+                innerX[i] = centerline.get(i)[0] - nx * half;
+                innerY[i] = centerline.get(i)[1] - ny * half;
+            }
+
+            double[] polyX = new double[2 * n];
+            double[] polyY = new double[2 * n];
+            for (int i = 0; i < n; i++) {
+                polyX[i] = outerX[i];
+                polyY[i] = outerY[i];
+                polyX[n + i] = innerX[n - 1 - i];
+                polyY[n + i] = innerY[n - 1 - i];
+            }
+            gc.setFill(Color.web("#4a4a4a"));
+            gc.fillPolygon(polyX, polyY, 2 * n);
+
+            gc.setStroke(Color.WHITE);
+            gc.setLineWidth(3.0);
+            gc.strokePolygon(outerX, outerY, n);
+            gc.strokePolygon(innerX, innerY, n);
+        });
+    }
+
     public void drawPoint(String c, int x, int y, int r) {
         Platform.runLater(() -> {
             gc.setFill(Color.web(c, 1.0));
@@ -33,7 +79,6 @@ public class MapView {
             System.out.println("Error: xArr.length != yArr.length!");
             return;
         }
-
         for (int k = 0; k < xArr.length; k++) {
             drawPoint(c, xArr[k], yArr[k], r);
         }
@@ -56,7 +101,6 @@ public class MapView {
             System.out.println("Error: xArr.length != yArr.length!");
             return;
         }
-
         for (int k = 0; k < xArr.length - 1; k++) {
             drawLine(c, xArr[k], yArr[k], xArr[k + 1], yArr[k + 1]);
             if (k == xArr.length - 2) {

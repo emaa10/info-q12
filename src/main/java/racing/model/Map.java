@@ -7,11 +7,15 @@
 
 package racing.model;
 
+import java.util.ArrayList;
+import java.util.List;
 import racing.model.util.LCG;
 import racing.model.util.geometry.ConvexHull;
 import racing.model.util.geometry.Point;
 
 public class Map {
+
+    private static final int TRACK_WIDTH = 60;
 
     private racing.view.MapView view;
     private int seed;
@@ -27,6 +31,8 @@ public class Map {
     private Point startFinishPoint;
     private int[] startFinishCoordinates;
     private Point[] convexHull;
+    private Point[] trackPoints;
+    private List<int[]> centerline;
     private LCG lcg;
     private double difficulty;
 
@@ -63,6 +69,7 @@ public class Map {
         this.view = mapView;
         this.difficulty = 0.1;
         this.lcg = new LCG();
+
         lcg.randomNumbers(this.pointCoordinates, 2 * this.numberOfPoints);
         mod65Arr(pointCoordinates);
 
@@ -73,34 +80,138 @@ public class Map {
             );
         }
 
+        lcg.randomNumbers(this.startFinishCoordinates, 2);
         mod65Arr(this.startFinishCoordinates);
         this.startFinishPoint = new Point(
             14 * this.startFinishCoordinates[0] + 32,
             7 * this.startFinishCoordinates[1] + 44
         );
+
         this.convexHull = new ConvexHull().jarvis(this.points);
 
-        int[] xArr = new int[this.convexHull.length];
-        int[] yArr = new int[this.convexHull.length];
+        Point[] midpoints = computeRandomlyDisplacedMidpoints();
 
+        this.trackPoints = new Point[this.convexHull.length * 2];
         for (int k = 0; k < this.convexHull.length; k++) {
-            xArr[k] = this.convexHull[k].getX();
-            yArr[k] = this.convexHull[k].getY();
+            this.trackPoints[2 * k] = this.convexHull[k];
+            this.trackPoints[2 * k + 1] = midpoints[k];
         }
-        this.view.drawLines("red", xArr, yArr);
-        int[] xArrP = new int[this.points.length];
-        int[] yArrP = new int[this.points.length];
-        for (int k = 0; k < this.points.length; k++) {
-            xArrP[k] = this.points[k].getX();
-            yArrP[k] = this.points[k].getY();
-            System.out.println(this.points[k].toString());
-        }
-        this.view.drawPoints("red", xArrP, yArrP, 5);
-        Point[] mp;
-        mp = computeRandomlyDisplacedMidpoints();
+
+        this.centerline = smoothTrack();
+        this.view.drawTrack(this.centerline, TRACK_WIDTH);
     }
 
-    // Utility method.
+    public List<int[]> smoothTrack() {
+        int n = this.trackPoints.length + 1;
+        double[] x = new double[n];
+        double[] y = new double[n];
+
+        for (int k = 0; k < this.trackPoints.length; k++) {
+            x[k] = this.trackPoints[k].getX();
+            y[k] = this.trackPoints[k].getY();
+        }
+
+        x[this.trackPoints.length] = x[0];
+        y[this.trackPoints.length] = y[0];
+
+        double[] u = new double[n];
+        u[0] = 0;
+
+        for (int i = 1; i < n; i++) {
+            double dx = x[i] - x[i - 1];
+            double dy = y[i] - y[i - 1];
+            u[i] = u[i - 1] + Math.sqrt(dx * dx + dy * dy);
+        }
+
+        for (int i = 0; i < n; i++) {
+            u[i] /= u[n - 1];
+        }
+
+        double[] mx = periodicSplineSecondDerivatives(x, u);
+        double[] my = periodicSplineSecondDerivatives(y, u);
+
+        int N = 200;
+        List<int[]> result = new ArrayList<>();
+
+        for (int k = 0; k < N; k++) {
+            double t = (double) k / N;
+            result.add(new int[] {
+                (int) splineEval(t, x, u, mx),
+                (int) splineEval(t, y, u, my),
+            });
+        }
+
+        return result;
+    }
+
+    static double[] periodicSplineSecondDerivatives(double[] x, double[] u) {
+        int n = x.length;
+
+        double[] h = new double[n];
+        for (int i = 0; i < n - 1; i++) {
+            h[i] = u[i + 1] - u[i];
+        }
+        h[n - 1] = u[0] + 1 - u[n - 1];
+
+        double[] alpha = new double[n];
+        for (int i = 1; i < n - 1; i++) {
+            alpha[i] =
+                (3 / h[i]) * (x[i + 1] - x[i]) -
+                (3 / h[i - 1]) * (x[i] - x[i - 1]);
+        }
+
+        alpha[0] =
+            (3 / h[0]) * (x[1] - x[0]) - (3 / h[n - 1]) * (x[0] - x[n - 1]);
+
+        alpha[n - 1] = alpha[0];
+
+        double[] l = new double[n];
+        double[] mu = new double[n];
+        double[] z = new double[n];
+        double[] c = new double[n];
+
+        l[0] = 1;
+        mu[0] = 0;
+        z[0] = 0;
+
+        for (int i = 1; i < n - 1; i++) {
+            l[i] = 2 * (u[i + 1] - u[i - 1]) - h[i - 1] * mu[i - 1];
+            mu[i] = h[i] / l[i];
+            z[i] = (alpha[i] - h[i - 1] * z[i - 1]) / l[i];
+        }
+
+        l[n - 1] = 1;
+
+        for (int j = n - 2; j >= 0; j--) {
+            c[j] = z[j] - mu[j] * c[j + 1];
+        }
+
+        return c;
+    }
+
+    static double splineEval(double t, double[] x, double[] u, double[] M) {
+        int n = x.length;
+
+        int i = n - 2;
+        for (int j = 0; j < n - 1; j++) {
+            if (t >= u[j] && t < u[j + 1]) {
+                i = j;
+                break;
+            }
+        }
+
+        double h = u[i + 1] - u[i];
+        double a = (u[i + 1] - t) / h;
+        double b = (t - u[i]) / h;
+
+        return (
+            a * x[i] +
+            b * x[i + 1] +
+            (((a * a * a - a) * M[i] + (b * b * b - b) * M[i + 1]) * (h * h)) /
+                6.0
+        );
+    }
+
     private void mod65Arr(int[] arr) {
         for (int k = 0; k < arr.length; k++) {
             arr[k] = arr[k] % 65;
@@ -114,12 +225,9 @@ public class Map {
     }
 
     private Point[] computeRandomlyDisplacedMidpoints() {
-        Point[] midpoints;
-        midpoints = new Point[this.convexHull.length];
-        int[] dx;
-        int[] dy;
-        dx = new int[this.convexHull.length];
-        dy = new int[this.convexHull.length];
+        Point[] midpoints = new Point[this.convexHull.length];
+        int[] dx = new int[this.convexHull.length];
+        int[] dy = new int[this.convexHull.length];
 
         this.lcg.randomNumbers(dx, this.convexHull.length);
         this.lcg.randomNumbers(dy, this.convexHull.length);
@@ -136,18 +244,17 @@ public class Map {
                     dx[k] +
                     this.convexHull[next].getX() +
                     dx[next]) / 2,
-
                 (this.convexHull[k].getY() +
                     dy[k] +
                     this.convexHull[next].getY() +
                     dy[next]) / 2
             );
         }
-        for (Point mp : midpoints) {
-            System.out.println(mp.toString());
-            this.view.drawPoint("blue", mp.getX(), mp.getY(), 10);
-        }
 
         return midpoints;
+    }
+
+    public List<int[]> getCenterline() {
+        return centerline;
     }
 }
