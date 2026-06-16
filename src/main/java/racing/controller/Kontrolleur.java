@@ -39,7 +39,7 @@ public class Kontrolleur implements Runnable {
 
         for (Spieler s : spiel.gibSpieler()) {
             Auto auto = s.gibAuto();
-
+            // aktuell wird jedes Auto angesteuert. muss man später für Mehrspieler anpassen
             if (tasten.contains(KeyCode.UP)    || tasten.contains(KeyCode.W)) auto.gibGas();
             if (tasten.contains(KeyCode.DOWN)  || tasten.contains(KeyCode.S)) auto.bremse();
             if (tasten.contains(KeyCode.LEFT)  || tasten.contains(KeyCode.A)) auto.dreheLinks();

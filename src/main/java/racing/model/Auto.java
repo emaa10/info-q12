@@ -19,8 +19,8 @@ public class Auto implements Datenelement {
     private final double Crr;      // Rollwiderstandsbeiwert
     private final double A;        // Frontfläche in m²
     private final double drehRate;    // Grad pro Frame
-    private final double traktion;    // 0 = Eis, 1 = perfekter Grip
-    private final double heckSchlupf; // Lateralgrip unter Gas (RWD-Übersteuern)
+    private final double traktion;    // 0 = Eis, 1 = perfekter Grip ==> man könnte bereiche für verschiedene Untergründe definieren
+    private final double heckSchlupf; // Lateralgrip unter Gas (heck-drift)
     private boolean gasAktiv = false;
 
     public Auto(double x, double y, double winkel) {
@@ -37,7 +37,7 @@ public class Auto implements Datenelement {
         this.heckSchlupf = 0.35; // unter Gas nur 35 % Dämpfung → leichtes Übersteuern
     }
 
-    // Physik-Schritt — einmal pro Frame aufrufen
+    // in jedem step wird diese Methode aufgerufen, um die Position zu aktualisieren und auch die beschleunigung zurückzusetzen
     public void itr() {
         x += v_x;
         y += v_y;
@@ -53,6 +53,7 @@ public class Auto implements Datenelement {
         a_y = 0;
     }
 
+    // berechnet x und y beschleunigung basierend auf der aktuellen drehung des autos
     public void gibGas() {
         double rad = Math.toRadians(winkel);
         a_x += a * Math.cos(rad);
@@ -60,6 +61,7 @@ public class Auto implements Datenelement {
         gasAktiv = true;
     }
 
+    // berechnet x und y beschleunigung basierend auf der aktuellen drehung des autos, aber in die entgegengesetzte richtung wie gas
     public void bremse() {
         double rad = Math.toRadians(winkel);
         a_x -= a * Math.cos(rad);
@@ -74,6 +76,7 @@ public class Auto implements Datenelement {
         winkel = (winkel + drehRate) % 360;
     }
 
+    // Luftwiderstand: F_drag = 0.5 * Cv * A * rho_luft * v^2, wirkt immer entgegen der Fahrtrichtung
     private void applyAirDrag() {
         double v_squared = v_x * v_x + v_y * v_y;
         double speed = Math.sqrt(v_squared);
@@ -88,8 +91,8 @@ public class Auto implements Datenelement {
         v_y -= (v_y / speed) * (dragForce / m);
     }
 
-    // Seitengeschwindigkeit dämpfen → Auto folgt seiner Fahrtrichtung
-    // Unter Gas (Heckantrieb): Hinterräder verlieren Querhaftung → Übersteuern
+    // Seitengeschwindigkeit dämpfen ==> Auto folgt seiner Fahrtrichtung
+    // Unter Gas (Heckantrieb): Hinterräder verlieren Querhaftung → https://www.youtube.com/watch?v=7jItw5c_-I0
     private void applyTraktion() {
         double rad = Math.toRadians(winkel);
         double fwdX = Math.cos(rad);
@@ -106,6 +109,7 @@ public class Auto implements Datenelement {
         gasAktiv = false;
     }
 
+    // Rollwiderstand: F_rr = Crr * m * g, wirkt immer entgegen der Fahrtrichtung, aber nur wenn das Auto sich bewegt
     private void applyFrictionDrag() {
         double speed = Math.sqrt(v_x * v_x + v_y * v_y);
         if (speed == 0) return;
@@ -118,6 +122,7 @@ public class Auto implements Datenelement {
         v_y -= (v_y / speed) * (frictionForce / m);
     }
 
+    // schaut dass das auto nicht aus der bahn rausfährt, wenn es die wand berührt wird die position korrigiert und die geschwindigkeit in diese richtung auf 0 gesetzt
     public void begrenze(double maxX, double maxY) {
         double halbBreite = 28;
         double halbHoehe  = 14;
