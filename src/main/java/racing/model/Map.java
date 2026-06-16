@@ -256,4 +256,8 @@ public class Map {
     public List<int[]> getCenterline() {
         return centerline;
     }
+
+    public void draw() {
+        this.view.drawTrack(this.centerline, TRACK_WIDTH);
+    }
 }
