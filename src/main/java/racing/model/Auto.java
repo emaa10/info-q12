@@ -13,23 +13,25 @@ public class Auto implements Datenelement {
     private double a_x;
     private double a_y;
 
-    private final double a;       // Beschleunigung pro Frame
-    private final double m;       // Masse in kg
-    private final double Cv;      // Luftwiderstandsbeiwert
-    private final double Crr;     // Rollwiderstandsbeiwert
-    private final double A;       // Frontfläche in m²
+    private final double a;        // Beschleunigung pro Frame
+    private final double m;        // Masse in kg
+    private final double Cv;       // Luftwiderstandsbeiwert
+    private final double Crr;      // Rollwiderstandsbeiwert
+    private final double A;        // Frontfläche in m²
     private final double drehRate; // Grad pro Frame
+    private final double traktion; // 0 = Eis, 1 = perfekter Grip
 
     public Auto(double x, double y, double winkel) {
         this.x = x;
         this.y = y;
         this.winkel = winkel;
-        this.a       = 0.3;
-        this.m       = 1000.0;
-        this.Cv      = 0.3;
-        this.Crr     = 0.015;
-        this.A       = 2.2;
+        this.a        = 0.22;
+        this.m        = 1000.0;
+        this.Cv       = 0.3;
+        this.Crr      = 0.015;
+        this.A        = 2.2;
         this.drehRate = 3.0;
+        this.traktion = 0.30; // 30 % Seitengeschwindigkeit wird pro Frame gedämpft
     }
 
     // Physik-Schritt — einmal pro Frame aufrufen
@@ -42,6 +44,7 @@ public class Auto implements Datenelement {
 
         applyAirDrag();
         applyFrictionDrag();
+        applyTraktion();
 
         a_x = 0;
         a_y = 0;
@@ -79,6 +82,20 @@ public class Auto implements Datenelement {
 
         v_x -= (v_x / speed) * (dragForce / m);
         v_y -= (v_y / speed) * (dragForce / m);
+    }
+
+    // Seitengeschwindigkeit dämpfen → Auto folgt seiner Fahrtrichtung
+    private void applyTraktion() {
+        double rad = Math.toRadians(winkel);
+        double fwdX = Math.cos(rad);
+        double fwdY = Math.sin(rad);
+
+        double forwardSpeed = v_x * fwdX + v_y * fwdY;
+        double lateralX = v_x - forwardSpeed * fwdX;
+        double lateralY = v_y - forwardSpeed * fwdY;
+
+        v_x -= lateralX * traktion;
+        v_y -= lateralY * traktion;
     }
 
     private void applyFrictionDrag() {
