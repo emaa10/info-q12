@@ -27,7 +27,7 @@ public class Map {
     private Point startFinishPoint;
     private int[] startFinishCoordinates;
     private Point[] convexHull;
-    private Point[] trackPoints;
+    private LCG lcg;
     private double difficulty;
 
     // With seed as a parameter:
@@ -62,7 +62,7 @@ public class Map {
         this.startFinishCoordinates = new int[2];
         this.view = mapView;
         this.difficulty = 0.1;
-        LCG lcg = new LCG();
+        this.lcg = new LCG();
         lcg.randomNumbers(this.pointCoordinates, 2 * this.numberOfPoints);
         mod65Arr(pointCoordinates);
 
@@ -83,12 +83,9 @@ public class Map {
         int[] xArr = new int[this.convexHull.length];
         int[] yArr = new int[this.convexHull.length];
 
-        this.trackPoints = new Point[this.convexHull.length];
-
         for (int k = 0; k < this.convexHull.length; k++) {
             xArr[k] = this.convexHull[k].getX();
             yArr[k] = this.convexHull[k].getY();
-            this.trackPoints[k] = this.convexHull[k];
         }
         this.view.drawLines("red", xArr, yArr);
         int[] xArrP = new int[this.points.length];
@@ -99,6 +96,8 @@ public class Map {
             System.out.println(this.points[k].toString());
         }
         this.view.drawPoints("red", xArrP, yArrP, 5);
+        Point[] mp;
+        mp = computeRandomlyDisplacedMidpoints();
     }
 
     // Utility method.
@@ -106,5 +105,49 @@ public class Map {
         for (int k = 0; k < arr.length; k++) {
             arr[k] = arr[k] % 65;
         }
+    }
+
+    private void x05Arr(int[] arr) {
+        for (int k = 0; k < arr.length; k++) {
+            arr[k] = (int) Math.floor(arr[k] * 0.5);
+        }
+    }
+
+    private Point[] computeRandomlyDisplacedMidpoints() {
+        Point[] midpoints;
+        midpoints = new Point[this.convexHull.length];
+        int[] dx;
+        int[] dy;
+        dx = new int[this.convexHull.length];
+        dy = new int[this.convexHull.length];
+
+        this.lcg.randomNumbers(dx, this.convexHull.length);
+        this.lcg.randomNumbers(dy, this.convexHull.length);
+        mod65Arr(dx);
+        mod65Arr(dy);
+        x05Arr(dx);
+        x05Arr(dy);
+
+        for (int k = 0; k < this.convexHull.length; k++) {
+            int next = (k + 1) % this.convexHull.length;
+
+            midpoints[k] = new Point(
+                (this.convexHull[k].getX() +
+                    dx[k] +
+                    this.convexHull[next].getX() +
+                    dx[next]) / 2,
+
+                (this.convexHull[k].getY() +
+                    dy[k] +
+                    this.convexHull[next].getY() +
+                    dy[next]) / 2
+            );
+        }
+        for (Point mp : midpoints) {
+            System.out.println(mp.toString());
+            this.view.drawPoint("blue", mp.getX(), mp.getY(), 10);
+        }
+
+        return midpoints;
     }
 }
