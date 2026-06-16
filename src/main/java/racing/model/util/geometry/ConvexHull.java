@@ -1,4 +1,7 @@
+package racing.model.util.geometry;
+
 import java.util.Stack;
+import racing.model.util.geometry.Point;
 
 public class ConvexHull {
 

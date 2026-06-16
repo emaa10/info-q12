@@ -34,7 +34,6 @@ public class Point {
         return "(" + this.x + ", " + this.y + ")";
     }
 
-    @Override
     public boolean equals(Point p) {
         return this.x == p.getX() && this.y == p.getY();
     }
