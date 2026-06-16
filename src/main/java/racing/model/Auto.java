@@ -4,29 +4,115 @@ import racing.datastructure.Datenelement;
 
 public class Auto implements Datenelement {
 
-    private int x;
-    private int y;
-    private int winkel;
+    private double x;
+    private double y;
+    private double winkel; // in Grad (0 = rechts, 90 = unten)
 
-    public Auto(int x, int y, int winkel) {
+    private double v_x;
+    private double v_y;
+    private double a_x;
+    private double a_y;
+
+    private final double a;       // Beschleunigung pro Frame
+    private final double m;       // Masse in kg
+    private final double Cv;      // Luftwiderstandsbeiwert
+    private final double Crr;     // Rollwiderstandsbeiwert
+    private final double A;       // Frontfläche in m²
+    private final double drehRate; // Grad pro Frame
+
+    public Auto(double x, double y, double winkel) {
         this.x = x;
         this.y = y;
         this.winkel = winkel;
+        this.a       = 0.3;
+        this.m       = 1000.0;
+        this.Cv      = 0.3;
+        this.Crr     = 0.015;
+        this.A       = 2.2;
+        this.drehRate = 3.0;
     }
 
-    public void fahre(int geschwindigkeit) {
-        // todo
+    // Physik-Schritt — einmal pro Frame aufrufen
+    public void itr() {
+        x += v_x;
+        y += v_y;
+
+        v_x += a_x;
+        v_y += a_y;
+
+        applyAirDrag();
+        applyFrictionDrag();
+
+        a_x = 0;
+        a_y = 0;
     }
 
-    public void drehe(int gradAenderung) {
-        // todo
+    public void gibGas() {
+        double rad = Math.toRadians(winkel);
+        a_x += a * Math.cos(rad);
+        a_y += a * Math.sin(rad);
+    }
+
+    public void bremse() {
+        double rad = Math.toRadians(winkel);
+        a_x -= a * Math.cos(rad);
+        a_y -= a * Math.sin(rad);
+    }
+
+    public void dreheLinks() {
+        winkel = (winkel - drehRate + 360) % 360;
+    }
+
+    public void dreheRechts() {
+        winkel = (winkel + drehRate) % 360;
+    }
+
+    private void applyAirDrag() {
+        double v_squared = v_x * v_x + v_y * v_y;
+        double speed = Math.sqrt(v_squared);
+        if (speed == 0) return;
+
+        // F_drag = 0.5 * Cv * A * rho_luft * v^2 (rho = 1.293 kg/m^3 auf Meeresspiegel)
+        double dragForce = 0.5 * Cv * A * 1.293 * v_squared;
+        double maxDragForce = speed * m;
+        if (dragForce > maxDragForce) dragForce = maxDragForce;
+
+        v_x -= (v_x / speed) * (dragForce / m);
+        v_y -= (v_y / speed) * (dragForce / m);
+    }
+
+    private void applyFrictionDrag() {
+        double speed = Math.sqrt(v_x * v_x + v_y * v_y);
+        if (speed == 0) return;
+
+        double frictionForce = Crr * m * 9.81;
+        double maxFrictionForce = speed * m;
+        if (frictionForce > maxFrictionForce) frictionForce = maxFrictionForce;
+
+        v_x -= (v_x / speed) * (frictionForce / m);
+        v_y -= (v_y / speed) * (frictionForce / m);
+    }
+
+    public void begrenze(double maxX, double maxY) {
+        double halbBreite = 28;
+        double halbHoehe  = 14;
+
+        if (x - halbBreite < 0)    { x = halbBreite;        if (v_x < 0) v_x = 0; }
+        if (x + halbBreite > maxX) { x = maxX - halbBreite; if (v_x > 0) v_x = 0; }
+        if (y - halbHoehe  < 0)    { y = halbHoehe;         if (v_y < 0) v_y = 0; }
+        if (y + halbHoehe  > maxY) { y = maxY - halbHoehe;  if (v_y > 0) v_y = 0; }
+    }
+
+    public double getSpeed() {
+        return Math.sqrt(v_x * v_x + v_y * v_y);
     }
 
     public int[] gebePos() {
-        return new int[] { x, y };
+        return new int[] { (int) x, (int) y };
     }
 
-    public int gibWinkel() {
-        return winkel;
-    }
+    public double gibX()           { return x; }
+    public double gibY()           { return y; }
+    public int    gibWinkel()      { return (int) winkel; }
+    public double gibWinkelDouble(){ return winkel; }
 }

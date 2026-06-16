@@ -10,7 +10,7 @@ import racing.view.Oberflaeche;
 public class Main extends Application {
 
     private static final int BREITE = 960;
-    private static final int HOEHE = 600;
+    private static final int HOEHE  = 600;
 
     private Spiel spiel;
     private Kontrolleur kontrolleur;
@@ -21,7 +21,7 @@ public class Main extends Application {
     public void start(Stage buehne) {
         Oberflaeche oberflaeche = new Oberflaeche();
 
-        spiel = new Spiel(oberflaeche);
+        spiel      = new Spiel(oberflaeche);
         kontrolleur = new Kontrolleur(oberflaeche, spiel);
 
         Scene szene = new Scene(oberflaeche.gibWurzel(), BREITE, HOEHE);
@@ -33,7 +33,10 @@ public class Main extends Application {
         buehne.setMaxWidth(BREITE);
         buehne.show();
 
-        gameThread = new Thread(spiel, "GameThread");
+        // Tastatureingabe registrieren (braucht die fertige Scene)
+        oberflaeche.registriereEingabe(szene);
+
+        gameThread      = new Thread(spiel,       "GameThread");
         controllerThread = new Thread(kontrolleur, "ControllerThread");
         gameThread.setDaemon(true);
         controllerThread.setDaemon(true);
@@ -43,12 +46,8 @@ public class Main extends Application {
 
     @Override
     public void stop() {
-        if (spiel != null) {
-            spiel.stoppe();
-        }
-        if (kontrolleur != null) {
-            kontrolleur.stoppe();
-        }
+        if (spiel != null)       spiel.stoppe();
+        if (kontrolleur != null) kontrolleur.stoppe();
     }
 
     public static void main(String[] args) {

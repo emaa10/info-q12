@@ -1,23 +1,25 @@
 package racing.controller;
 
+import java.util.Set;
+
+import javafx.scene.input.KeyCode;
+import racing.model.Auto;
 import racing.model.Spiel;
+import racing.model.Spieler;
 import racing.view.Oberflaeche;
 
 public class Kontrolleur implements Runnable {
 
-    // Oberfläche und Spiel deklarieren
     private final Oberflaeche oberflaeche;
     private final Spiel spiel;
 
     private volatile boolean aktiv;
 
-    // Konstruktur für den controller, Attribute darin initialisieren
     public Kontrolleur(Oberflaeche oberflaeche, Spiel spiel) {
         this.oberflaeche = oberflaeche;
         this.spiel = spiel;
     }
 
-    // run methode, die den controller ausführt
     @Override
     public void run() {
         aktiv = true;
@@ -32,12 +34,17 @@ public class Kontrolleur implements Runnable {
         }
     }
 
-    /**
-     * Prueft die zuletzt gemeldeten Eingaben und leitet daraus Aktionen fuers
-     * Spiel ab. Noch nicht implementiert.
-     */
     public void pruefeEingabe() {
-        // todo
+        Set<KeyCode> tasten = oberflaeche.gibGedrueckteTasten();
+
+        for (Spieler s : spiel.gibSpieler()) {
+            Auto auto = s.gibAuto();
+
+            if (tasten.contains(KeyCode.UP)    || tasten.contains(KeyCode.W)) auto.gibGas();
+            if (tasten.contains(KeyCode.DOWN)  || tasten.contains(KeyCode.S)) auto.bremse();
+            if (tasten.contains(KeyCode.LEFT)  || tasten.contains(KeyCode.A)) auto.dreheLinks();
+            if (tasten.contains(KeyCode.RIGHT) || tasten.contains(KeyCode.D)) auto.dreheRechts();
+        }
     }
 
     public void stoppe() {
