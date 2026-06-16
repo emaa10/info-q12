@@ -24,6 +24,7 @@ public class Oberflaeche {
     private final GraphicsContext gc;
     private final Image baumBild;
     private final Image autoBild;
+    private final MapView mapView;
 
     private final Set<KeyCode> gedrueckteTasten = new HashSet<>();
 
@@ -34,10 +35,15 @@ public class Oberflaeche {
         this.wurzel.setStyle("-fx-background-color: white;");
         this.baumBild = new Image(getClass().getResourceAsStream("/images/tree.png"));
         this.autoBild = new Image(getClass().getResourceAsStream("/images/auto_m2.png"));
+        this.mapView  = new MapView(this.gc);
     }
 
     public Parent gibWurzel() {
         return wurzel;
+    }
+
+    public MapView getMapView() {
+        return this.mapView;
     }
 
     // Muss nach Scene-Erstellung aufgerufen werden

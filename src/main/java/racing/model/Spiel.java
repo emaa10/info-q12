@@ -16,9 +16,10 @@ public class Spiel implements Runnable {
 
     public Spiel(Oberflaeche oberflaeche) {
         this.oberflaeche = oberflaeche;
+        this.oberflaeche.loesche();
         this.datenbank = new Datenbank();
         this.datenbank.verbinde();
-        this.level = new Level(new Map());
+        this.level = new Level(new Map(this.oberflaeche.getMapView()));
 
         // Spieler mit Auto an der Start-Ziel-Linie platzieren
         Point sfp = this.level.gibMap().getStartFinishPoint();
