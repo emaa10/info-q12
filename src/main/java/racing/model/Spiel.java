@@ -40,6 +40,14 @@ public class Spiel implements Runnable {
         level.platziereGegenstand(new Baum(), 400, 300);
         level.platziereGegenstand(new Baum(), 600, 150);
 
+        // Note:
+        // Scale:
+        // x_max = 960; x_rand,max = 64 => Faktor 14 (x_s,min = 0, x_s,max = 896)
+        // y_max = 600; y_rand,max = 64 => Faktor 8 (y_s,min = 0, y_s,max = 512)
+        // Transform:
+        // x + 32 (x_st,min = 32, x_st,max = 928) -> genau um 1/2 * 64 = 32 = Abstanbd zum rechten Rand
+        // y + 44 (y_st, min = 44, y_st,max = 556) -> vgl. oben, nur eben in vertikaler Richtung
+        // Damit die Punkte nicht in irgendeinem Eck vergammeln
         // Streckendaten einmalig berechnen
         int[] xKoord    = new int[this.level.gibMap().getPoints().length];
         int[] yKoord    = new int[this.level.gibMap().getPoints().length];
