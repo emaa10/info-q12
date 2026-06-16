@@ -18,8 +18,10 @@ public class Auto implements Datenelement {
     private final double Cv;       // Luftwiderstandsbeiwert
     private final double Crr;      // Rollwiderstandsbeiwert
     private final double A;        // Frontfläche in m²
-    private final double drehRate; // Grad pro Frame
-    private final double traktion; // 0 = Eis, 1 = perfekter Grip
+    private final double drehRate;    // Grad pro Frame
+    private final double traktion;    // 0 = Eis, 1 = perfekter Grip
+    private final double heckSchlupf; // Lateralgrip unter Gas (RWD-Übersteuern)
+    private boolean gasAktiv = false;
 
     public Auto(double x, double y, double winkel) {
         this.x = x;
@@ -28,10 +30,11 @@ public class Auto implements Datenelement {
         this.a        = 0.22;
         this.m        = 1000.0;
         this.Cv       = 0.3;
-        this.Crr      = 0.015;
+        this.Crr      = 0.01;
         this.A        = 2.2;
-        this.drehRate = 3.0;
-        this.traktion = 0.30; // 30 % Seitengeschwindigkeit wird pro Frame gedämpft
+        this.drehRate    = 3.0;
+        this.traktion    = 0.75; // 75 % Seitengeschwindigkeit wird pro Frame gedämpft
+        this.heckSchlupf = 0.35; // unter Gas nur 35 % Dämpfung → leichtes Übersteuern
     }
 
     // Physik-Schritt — einmal pro Frame aufrufen
@@ -54,6 +57,7 @@ public class Auto implements Datenelement {
         double rad = Math.toRadians(winkel);
         a_x += a * Math.cos(rad);
         a_y += a * Math.sin(rad);
+        gasAktiv = true;
     }
 
     public void bremse() {
@@ -85,6 +89,7 @@ public class Auto implements Datenelement {
     }
 
     // Seitengeschwindigkeit dämpfen → Auto folgt seiner Fahrtrichtung
+    // Unter Gas (Heckantrieb): Hinterräder verlieren Querhaftung → Übersteuern
     private void applyTraktion() {
         double rad = Math.toRadians(winkel);
         double fwdX = Math.cos(rad);
@@ -94,8 +99,11 @@ public class Auto implements Datenelement {
         double lateralX = v_x - forwardSpeed * fwdX;
         double lateralY = v_y - forwardSpeed * fwdY;
 
-        v_x -= lateralX * traktion;
-        v_y -= lateralY * traktion;
+        double grip = gasAktiv ? heckSchlupf : traktion;
+        v_x -= lateralX * grip;
+        v_y -= lateralY * grip;
+
+        gasAktiv = false;
     }
 
     private void applyFrictionDrag() {
