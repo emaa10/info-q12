@@ -25,11 +25,10 @@ public class MapView {
     public void drawTrack(List<int[]> centerline, int width) {
         Platform.runLater(() -> {
             int n = centerline.size();
-            double[] outerX = new double[n];
-            double[] outerY = new double[n];
-            double[] innerX = new double[n];
-            double[] innerY = new double[n];
+            int radius = width / 2;
 
+            double[] normalX = new double[n];
+            double[] normalY = new double[n];
             for (int i = 0; i < n; i++) {
                 int prev = (i - 1 + n) % n;
                 int next = (i + 1) % n;
@@ -40,31 +39,119 @@ public class MapView {
                     tx /= len;
                     ty /= len;
                 }
-                double nx = -ty;
-                double ny = tx;
-                double half = width / 2.0;
-                outerX[i] = centerline.get(i)[0] + nx * half;
-                outerY[i] = centerline.get(i)[1] + ny * half;
-                innerX[i] = centerline.get(i)[0] - nx * half;
-                innerY[i] = centerline.get(i)[1] - ny * half;
+                normalX[i] = -ty;
+                normalY[i] = tx;
             }
 
-            double[] polyX = new double[2 * n];
-            double[] polyY = new double[2 * n];
+            boolean[] corners = detectCorners(centerline, n);
             for (int i = 0; i < n; i++) {
-                polyX[i] = outerX[i];
-                polyY[i] = outerY[i];
-                polyX[n + i] = innerX[n - 1 - i];
-                polyY[n + i] = innerY[n - 1 - i];
+                if (!corners[i]) continue;
+                double cx = centerline.get(i)[0];
+                double cy = centerline.get(i)[1];
+                int prev = (i - 1 + n) % n;
+                int next = (i + 1) % n;
+                double tx = centerline.get(next)[0] - centerline.get(prev)[0];
+                double ty = centerline.get(next)[1] - centerline.get(prev)[1];
+                placeKerbTile(
+                    cx + normalX[i] * radius,
+                    cy + normalY[i] * radius,
+                    tx,
+                    ty,
+                    -8
+                );
+                placeKerbTile(
+                    cx - normalX[i] * radius,
+                    cy - normalY[i] * radius,
+                    tx,
+                    ty,
+                    0
+                );
             }
-            gc.setFill(Color.web("#4a4a4a"));
-            gc.fillPolygon(polyX, polyY, 2 * n);
 
-            gc.setStroke(Color.WHITE);
-            gc.setLineWidth(3.0);
-            gc.strokePolygon(outerX, outerY, n);
-            gc.strokePolygon(innerX, innerY, n);
+            gc.setFill(Color.web("#bab6a8"));
+            for (int[] point : centerline) {
+                gc.fillOval(
+                    point[0] - radius,
+                    point[1] - radius,
+                    radius * 2,
+                    radius * 2
+                );
+            }
+
+            placeStartFinishLine(
+                centerline.get(0)[0],
+                centerline.get(0)[1],
+                normalX[0],
+                normalY[0],
+                width
+            );
         });
+    }
+
+    private boolean[] detectCorners(List<int[]> centerline, int n) {
+        boolean[] sharp = new boolean[n];
+        for (int i = 0; i < n; i++) {
+            int prev = (i - 1 + n) % n;
+            int next = (i + 1) % n;
+            double t1x = centerline.get(i)[0] - centerline.get(prev)[0];
+            double t1y = centerline.get(i)[1] - centerline.get(prev)[1];
+            double t2x = centerline.get(next)[0] - centerline.get(i)[0];
+            double t2y = centerline.get(next)[1] - centerline.get(i)[1];
+            double l1 = Math.sqrt(t1x * t1x + t1y * t1y);
+            double l2 = Math.sqrt(t2x * t2x + t2y * t2y);
+            if (l1 > 0) {
+                t1x /= l1;
+                t1y /= l1;
+            }
+            if (l2 > 0) {
+                t2x /= l2;
+                t2y /= l2;
+            }
+            double dot = Math.max(-1.0, Math.min(1.0, t1x * t2x + t1y * t2y));
+            sharp[i] = Math.acos(dot) > 0.08;
+        }
+        boolean[] result = new boolean[n];
+        for (int i = 0; i < n; i++) {
+            if (sharp[i]) {
+                for (int d = -5; d <= 5; d++) result[(i + d + n) % n] = true;
+            }
+        }
+        return result;
+    }
+
+    private void placeKerbTile(
+        double ex,
+        double ey,
+        double tx,
+        double ty,
+        int yOffset
+    ) {
+        if (tx == 0 && ty == 0) return;
+        gc.save();
+        gc.translate(ex, ey);
+        gc.rotate(Math.toDegrees(Math.atan2(ty, tx)));
+        gc.drawImage(kerbImg, -6, yOffset, 12, 8);
+        gc.restore();
+    }
+
+    private void placeStartFinishLine(
+        double cx,
+        double cy,
+        double nx,
+        double ny,
+        int width
+    ) {
+        double startX = cx - nx * (width / 2.0);
+        double startY = cy - ny * (width / 2.0);
+        double angle = Math.toDegrees(Math.atan2(ny, nx));
+        int numTiles = (int) Math.ceil(width / 8.0);
+        for (int t = 0; t < numTiles; t++) {
+            gc.save();
+            gc.translate(startX + nx * 8 * t, startY + ny * 8 * t);
+            gc.rotate(angle);
+            gc.drawImage(gridImg, 0, -4, 8, 8);
+            gc.restore();
+        }
     }
 
     public void drawPoint(String c, int x, int y, int r) {

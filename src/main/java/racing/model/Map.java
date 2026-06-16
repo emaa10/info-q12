@@ -2,145 +2,186 @@
 // (c) 2026 - Jakob Grätz (@jakobgraetz)
 // See also:
 // https://en.wikipedia.org/wiki/Random_number_generation
-// https://en.wikipedia.org/wiki/Linear_congruential_generator
 // https://bitesofcode.wordpress.com/2020/04/09/procedural-racetrack-generation/
+// https://github.com/juangallostra/procedural-tracks/blob/master/main.py
 
 package racing.model;
 
 import java.util.ArrayList;
 import java.util.List;
-import racing.model.util.LCG;
+import java.util.Random;
 import racing.model.util.geometry.ConvexHull;
 import racing.model.util.geometry.Point;
 
 public class Map {
 
-    private static final int TRACK_WIDTH = 60;
+    private static final int WIDTH = 960;
+    private static final int HEIGHT = 600;
+    private static final int MARGIN = 50;
+    private static final int MIN_POINTS = 20;
+    private static final int MAX_POINTS = 30;
+    private static final int MIN_DISTANCE = 20;
+    private static final int MAX_DISPLACEMENT = 80;
+    private static final double DIFFICULTY = 0.1;
+    private static final int DISTANCE_BETWEEN_POINTS = 20;
+    private static final double MAX_ANGLE = 90.0;
+    private static final int SPLINE_POINTS = 1000;
+    static final int TRACK_WIDTH = 40;
 
     private racing.view.MapView view;
-    private int seed;
-    private int modulus;
-    private int multiplier;
-    private int increment;
-    private int numberOfPoints;
-    private int[] pointCoordinates;
-    private Point[] points;
-    // Die Ziellinie in der Formel 1 wird offiziell als Start-Ziel-Linie bezeichnet.
-    // Sie dient als Startpunkt des Rennens sowie als Zeitmesslinie für die Rundenzeiten
-    // und markiert das Ende jeder gefahrenen Runde und des gesamten Rennens. (vgl. Wikipedia)
-    private Point startFinishPoint;
-    private int[] startFinishCoordinates;
-    private Point[] convexHull;
     private Point[] trackPoints;
     private List<int[]> centerline;
-    private LCG lcg;
-    private double difficulty;
+    private Random rng;
 
-    // With seed as a parameter:
-    public Map(int seed, racing.view.MapView mapView) {
-        this.numberOfPoints = 8;
-        this.pointCoordinates = new int[2 * this.numberOfPoints];
-        this.points = new Point[this.numberOfPoints];
-        this.startFinishCoordinates = new int[2];
-        this.view = mapView;
-
-        mod65Arr(pointCoordinates);
-
-        for (int k = 0, idx = 0; k < pointCoordinates.length; k += 2, idx++) {
-            this.points[idx] = new Point(
-                14 * pointCoordinates[k] + 32,
-                7 * pointCoordinates[k + 1] + 44
-            );
-        }
-
-        mod65Arr(this.startFinishCoordinates);
-        this.startFinishPoint = new Point(
-            14 * this.startFinishCoordinates[0] + 32,
-            7 * this.startFinishCoordinates[1] + 44
-        );
-    }
-
-    // Without seed as a parameter:
     public Map(racing.view.MapView mapView) {
-        this.numberOfPoints = 8;
-        this.pointCoordinates = new int[2 * this.numberOfPoints];
-        this.points = new Point[this.numberOfPoints];
-        this.startFinishCoordinates = new int[2];
         this.view = mapView;
-        this.difficulty = 0.1;
-        this.lcg = new LCG();
+        this.rng = new Random();
 
-        lcg.randomNumbers(this.pointCoordinates, 2 * this.numberOfPoints);
-        mod65Arr(pointCoordinates);
-
-        for (int k = 0, idx = 0; k < pointCoordinates.length; k += 2, idx++) {
-            this.points[idx] = new Point(
-                14 * pointCoordinates[k] + 32,
-                7 * pointCoordinates[k + 1] + 44
-            );
-        }
-
-        lcg.randomNumbers(this.startFinishCoordinates, 2);
-        mod65Arr(this.startFinishCoordinates);
-        this.startFinishPoint = new Point(
-            14 * this.startFinishCoordinates[0] + 32,
-            7 * this.startFinishCoordinates[1] + 44
-        );
-
-        this.convexHull = new ConvexHull().jarvis(this.points);
-
-        Point[] midpoints = computeRandomlyDisplacedMidpoints();
-
-        this.trackPoints = new Point[this.convexHull.length * 2];
-        for (int k = 0; k < this.convexHull.length; k++) {
-            this.trackPoints[2 * k] = this.convexHull[k];
-            this.trackPoints[2 * k + 1] = midpoints[k];
-        }
-
-        this.centerline = smoothTrack();
+        Point[] pts = randomPoints();
+        Point[] hull = new ConvexHull().jarvis(pts);
+        this.trackPoints = shapeTrack(hull);
+        this.centerline = smoothTrack(this.trackPoints);
         this.view.drawTrack(this.centerline, TRACK_WIDTH);
     }
 
-    public List<int[]> smoothTrack() {
-        int n = this.trackPoints.length + 1;
+    private Point[] randomPoints() {
+        int count = MIN_POINTS + rng.nextInt(MAX_POINTS - MIN_POINTS + 1);
+        List<Point> pts = new ArrayList<>();
+        int attempts = 0;
+        while (pts.size() < count && attempts < 10000) {
+            attempts++;
+            int x = MARGIN + rng.nextInt(WIDTH - 2 * MARGIN + 1);
+            int y = MARGIN + rng.nextInt(HEIGHT - 2 * MARGIN + 1);
+            boolean tooClose = false;
+            for (Point p : pts) {
+                double dx = p.getX() - x;
+                double dy = p.getY() - y;
+                if (Math.sqrt(dx * dx + dy * dy) < MIN_DISTANCE) {
+                    tooClose = true;
+                    break;
+                }
+            }
+            if (!tooClose) pts.add(new Point(x, y));
+        }
+        return pts.toArray(new Point[0]);
+    }
+
+    private Point[] shapeTrack(Point[] hull) {
+        int n = hull.length;
+        Point[] track = new Point[n * 2];
+        for (int i = 0; i < n; i++) {
+            double displacement =
+                Math.pow(rng.nextDouble(), DIFFICULTY) * MAX_DISPLACEMENT;
+            double[] disp = randUnitVector(displacement);
+            int mx = (int) ((hull[i].getX() + hull[(i + 1) % n].getX()) / 2.0 +
+                disp[0]);
+            int my = (int) ((hull[i].getY() + hull[(i + 1) % n].getY()) / 2.0 +
+                disp[1]);
+            track[i * 2] = new Point(hull[i].getX(), hull[i].getY());
+            track[i * 2 + 1] = new Point(mx, my);
+        }
+        for (int iter = 0; iter < 3; iter++) {
+            fixAngles(track);
+            pushPointsApart(track);
+        }
+        for (Point p : track) {
+            p.setX(Math.max(MARGIN, Math.min(WIDTH - MARGIN, p.getX())));
+            p.setY(Math.max(MARGIN, Math.min(HEIGHT - MARGIN, p.getY())));
+        }
+        return track;
+    }
+
+    private double[] randUnitVector(double magnitude) {
+        double x = rng.nextGaussian();
+        double y = rng.nextGaussian();
+        double mag = Math.sqrt(x * x + y * y);
+        if (mag == 0) mag = 1;
+        return new double[] { (magnitude * x) / mag, (magnitude * y) / mag };
+    }
+
+    private void fixAngles(Point[] pts) {
+        int n = pts.length;
+        for (int i = 0; i < n; i++) {
+            int prev = (i - 1 + n) % n;
+            int next = (i + 1) % n;
+            double px = pts[i].getX() - pts[prev].getX();
+            double py = pts[i].getY() - pts[prev].getY();
+            double pl = Math.sqrt(px * px + py * py);
+            if (pl > 0) {
+                px /= pl;
+                py /= pl;
+            }
+            double nx = -(pts[i].getX() - pts[next].getX());
+            double ny = -(pts[i].getY() - pts[next].getY());
+            double nl = Math.sqrt(nx * nx + ny * ny);
+            if (nl > 0) {
+                nx /= nl;
+                ny /= nl;
+            }
+            double a = Math.atan2(px * ny - py * nx, px * nx + py * ny);
+            if (Math.abs(Math.toDegrees(a)) <= MAX_ANGLE) continue;
+            double diff = Math.toRadians(MAX_ANGLE * Math.signum(a)) - a;
+            double c = Math.cos(diff);
+            double s = Math.sin(diff);
+            double newX = (nx * c - ny * s) * nl;
+            double newY = (nx * s + ny * c) * nl;
+            pts[next].setX((int) (pts[i].getX() + newX));
+            pts[next].setY((int) (pts[i].getY() + newY));
+        }
+    }
+
+    private void pushPointsApart(Point[] pts) {
+        int n = pts.length;
+        for (int i = 0; i < n; i++) {
+            for (int j = i + 1; j < n; j++) {
+                double dx = pts[j].getX() - pts[i].getX();
+                double dy = pts[j].getY() - pts[i].getY();
+                double dl = Math.sqrt(dx * dx + dy * dy);
+                if (dl >= DISTANCE_BETWEEN_POINTS) continue;
+                if (dl == 0) dl = 1;
+                dx /= dl;
+                dy /= dl;
+                double dif = DISTANCE_BETWEEN_POINTS - dl;
+                dx *= dif;
+                dy *= dif;
+                pts[j].setX((int) (pts[j].getX() + dx));
+                pts[j].setY((int) (pts[j].getY() + dy));
+                pts[i].setX((int) (pts[i].getX() - dx));
+                pts[i].setY((int) (pts[i].getY() - dy));
+            }
+        }
+    }
+
+    public List<int[]> smoothTrack(Point[] pts) {
+        int n = pts.length + 1;
         double[] x = new double[n];
         double[] y = new double[n];
-
-        for (int k = 0; k < this.trackPoints.length; k++) {
-            x[k] = this.trackPoints[k].getX();
-            y[k] = this.trackPoints[k].getY();
+        for (int k = 0; k < pts.length; k++) {
+            x[k] = pts[k].getX();
+            y[k] = pts[k].getY();
         }
-
-        x[this.trackPoints.length] = x[0];
-        y[this.trackPoints.length] = y[0];
+        x[pts.length] = x[0];
+        y[pts.length] = y[0];
 
         double[] u = new double[n];
-        u[0] = 0;
-
         for (int i = 1; i < n; i++) {
             double dx = x[i] - x[i - 1];
             double dy = y[i] - y[i - 1];
             u[i] = u[i - 1] + Math.sqrt(dx * dx + dy * dy);
         }
-
-        for (int i = 0; i < n; i++) {
-            u[i] /= u[n - 1];
-        }
+        for (int i = 0; i < n; i++) u[i] /= u[n - 1];
 
         double[] mx = periodicSplineSecondDerivatives(x, u);
         double[] my = periodicSplineSecondDerivatives(y, u);
 
-        int N = 200;
         List<int[]> result = new ArrayList<>();
-
-        for (int k = 0; k < N; k++) {
-            double t = (double) k / N;
+        for (int k = 0; k < SPLINE_POINTS; k++) {
+            double t = (double) k / SPLINE_POINTS;
             result.add(new int[] {
                 (int) splineEval(t, x, u, mx),
                 (int) splineEval(t, y, u, my),
             });
         }
-
         return result;
     }
 
@@ -210,48 +251,6 @@ public class Map {
             (((a * a * a - a) * M[i] + (b * b * b - b) * M[i + 1]) * (h * h)) /
                 6.0
         );
-    }
-
-    private void mod65Arr(int[] arr) {
-        for (int k = 0; k < arr.length; k++) {
-            arr[k] = arr[k] % 65;
-        }
-    }
-
-    private void x05Arr(int[] arr) {
-        for (int k = 0; k < arr.length; k++) {
-            arr[k] = (int) Math.floor(arr[k] * 0.5);
-        }
-    }
-
-    private Point[] computeRandomlyDisplacedMidpoints() {
-        Point[] midpoints = new Point[this.convexHull.length];
-        int[] dx = new int[this.convexHull.length];
-        int[] dy = new int[this.convexHull.length];
-
-        this.lcg.randomNumbers(dx, this.convexHull.length);
-        this.lcg.randomNumbers(dy, this.convexHull.length);
-        mod65Arr(dx);
-        mod65Arr(dy);
-        x05Arr(dx);
-        x05Arr(dy);
-
-        for (int k = 0; k < this.convexHull.length; k++) {
-            int next = (k + 1) % this.convexHull.length;
-
-            midpoints[k] = new Point(
-                (this.convexHull[k].getX() +
-                    dx[k] +
-                    this.convexHull[next].getX() +
-                    dx[next]) / 2,
-                (this.convexHull[k].getY() +
-                    dy[k] +
-                    this.convexHull[next].getY() +
-                    dy[next]) / 2
-            );
-        }
-
-        return midpoints;
     }
 
     public List<int[]> getCenterline() {
