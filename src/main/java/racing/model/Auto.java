@@ -33,8 +33,8 @@ public class Auto implements Datenelement {
         this.Crr      = 0.01;
         this.A        = 2.2;
         this.drehRate    = 3.0;
-        this.traktion    = 0.75; // 75 % Seitengeschwindigkeit wird pro Frame gedämpft
-        this.heckSchlupf = 0.35; // unter Gas nur 35 % Dämpfung → leichtes Übersteuern
+        this.traktion    = 0.65; // 75 % Seitengeschwindigkeit wird pro Frame gedämpft
+        this.heckSchlupf = 0.3; // unter Gas nur 35 % Dämpfung → leichtes Übersteuern
     }
 
     // in jedem step wird diese Methode aufgerufen, um die Position zu aktualisieren und auch die beschleunigung zurückzusetzen
