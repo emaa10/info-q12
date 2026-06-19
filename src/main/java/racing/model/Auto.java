@@ -6,6 +6,8 @@ public class Auto implements Datenelement {
 
     private double x;
     private double y;
+    private double prevX;
+    private double prevY;
     private double winkel; // in Grad (0 = rechts, 90 = unten)
 
     private double v_x;
@@ -22,10 +24,14 @@ public class Auto implements Datenelement {
     private final double traktion;    // 0 = Eis, 1 = perfekter Grip ==> man könnte bereiche für verschiedene Untergründe definieren
     private final double heckSchlupf; // Lateralgrip unter Gas (heck-drift)
     private boolean gasAktiv = false;
+    private int kollisionsAnzahl = 0;
+    private int kollisionsCooldown = 0;
 
     public Auto(double x, double y, double winkel) {
         this.x = x;
         this.y = y;
+        this.prevX = x;
+        this.prevY = y;
         this.winkel = winkel;
         this.a        = 0.22;
         this.m        = 1000.0;
@@ -39,6 +45,9 @@ public class Auto implements Datenelement {
 
     // in jedem step wird diese Methode aufgerufen, um die Position zu aktualisieren und auch die beschleunigung zurückzusetzen
     public void itr() {
+        prevX = x;
+        prevY = y;
+        if (kollisionsCooldown > 0) kollisionsCooldown--;
         x += v_x;
         y += v_y;
 
@@ -46,7 +55,6 @@ public class Auto implements Datenelement {
         v_y += a_y;
 
         applyAirDrag();
-        applyFrictionDrag();
         applyTraktion();
 
         a_x = 0;
@@ -109,17 +117,12 @@ public class Auto implements Datenelement {
         gasAktiv = false;
     }
 
-    // Rollwiderstand: F_rr = Crr * m * g, wirkt immer entgegen der Fahrtrichtung, aber nur wenn das Auto sich bewegt
-    private void applyFrictionDrag() {
-        double speed = Math.sqrt(v_x * v_x + v_y * v_y);
-        if (speed == 0) return;
 
-        double frictionForce = Crr * m * 9.81;
-        double maxFrictionForce = speed * m;
-        if (frictionForce > maxFrictionForce) frictionForce = maxFrictionForce;
-
-        v_x -= (v_x / speed) * (frictionForce / m);
-        v_y -= (v_y / speed) * (frictionForce / m);
+    // je weiter das Auto vom Track entfernt ist, desto mehr Reibung (0.99 auf Track, 0.90 weit draußen)
+    public void applyOffTrackFriction(double distVomTrack) {
+        double faktor = 0.99 - 0.09 * (1.0 - Math.exp(-distVomTrack / 30.0));
+        v_x *= faktor;
+        v_y *= faktor;
     }
 
     // schaut dass das auto nicht aus der bahn rausfährt, wenn es die wand berührt wird die position korrigiert und die geschwindigkeit in diese richtung auf 0 gesetzt
@@ -141,8 +144,37 @@ public class Auto implements Datenelement {
         return new int[] { (int) x, (int) y };
     }
 
+    // wenn das auto einen baum trifft: geschwindigkeit stark reduzieren
+    public void kollision() {
+        if (kollisionsCooldown > 0) return;
+        v_x *= 0.2;
+        v_y *= 0.2;
+        kollisionsAnzahl++;
+        kollisionsCooldown = 40;
+    }
+
+    public int  gibKollisionen()      { return kollisionsAnzahl; }
+    public void resetKollisionen()    { kollisionsAnzahl = 0; }
+
     public double gibX()           { return x; }
     public double gibY()           { return y; }
     public int    gibWinkel()      { return (int) winkel; }
     public double gibWinkelDouble(){ return winkel; }
+
+    // schaut ob das auto die linie von (ax,ay) nach (bx,by) überquert hat
+    // richtungPruefen=true: rückwärts zählt nicht (für startlinie), false: für checkpoints
+    public boolean prüfeLapCrossing(double ax, double ay, double bx, double by, double tx, double ty, boolean richtungPruefen) {
+        double dx = x - prevX;
+        double dy = y - prevY;
+
+        if (richtungPruefen && dx * tx + dy * ty <= 0) return false;
+
+        // kreuzprodukt-test ob die bewegung die linie schneidet
+        double d1 = (bx - ax) * (prevY - ay) - (by - ay) * (prevX - ax);
+        double d2 = (bx - ax) * (y - ay)     - (by - ay) * (x - ax);
+        double d3 = dx * (ay - prevY) - dy * (ax - prevX);
+        double d4 = dx * (by - prevY) - dy * (bx - prevX);
+
+        return d1 * d2 < 0 && d3 * d4 < 0;
+    }
 }
