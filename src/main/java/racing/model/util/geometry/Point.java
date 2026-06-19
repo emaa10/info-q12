@@ -1,7 +1,7 @@
 // Point.java
 // (c) 2026 - Jakob Grätz (@jakobgraetz)
 
-package racing.model;
+package racing.model.util.geometry;
 
 public class Point {
 
@@ -32,5 +32,9 @@ public class Point {
     @Override
     public String toString() {
         return "(" + this.x + ", " + this.y + ")";
+    }
+
+    public boolean equals(Point p) {
+        return this.x == p.getX() && this.y == p.getY();
     }
 }

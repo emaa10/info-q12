@@ -4,29 +4,145 @@ import racing.datastructure.Datenelement;
 
 public class Auto implements Datenelement {
 
-    private int x;
-    private int y;
-    private int winkel;
+    private double x;
+    private double y;
+    private double winkel; // in Grad (0 = rechts, 90 = unten)
 
-    public Auto(int x, int y, int winkel) {
+    private double v_x;
+    private double v_y;
+    private double a_x;
+    private double a_y;
+
+    private final double a;        // Beschleunigung pro Frame
+    private final double m;        // Masse in kg
+    private final double Cv;       // Luftwiderstandsbeiwert
+    private final double Crr;      // Rollwiderstandsbeiwert
+    private final double A;        // Frontfläche in m²
+    private final double drehRate;    // Grad pro Frame
+    private final double traktion;    // 0 = Eis, 1 = perfekter Grip ==> man könnte bereiche für verschiedene Untergründe definieren
+    private final double heckSchlupf; // Lateralgrip unter Gas (heck-drift)
+    private boolean gasAktiv = false;
+
+    public Auto(double x, double y, double winkel) {
         this.x = x;
         this.y = y;
         this.winkel = winkel;
+        this.a        = 0.22;
+        this.m        = 1000.0;
+        this.Cv       = 0.3;
+        this.Crr      = 0.01;
+        this.A        = 2.2;
+        this.drehRate    = 3.0;
+        this.traktion    = 0.65; // 75 % Seitengeschwindigkeit wird pro Frame gedämpft
+        this.heckSchlupf = 0.3; // unter Gas nur 35 % Dämpfung → leichtes Übersteuern
     }
 
-    public void fahre(int geschwindigkeit) {
-        // todo
+    // in jedem step wird diese Methode aufgerufen, um die Position zu aktualisieren und auch die beschleunigung zurückzusetzen
+    public void itr() {
+        x += v_x;
+        y += v_y;
+
+        v_x += a_x;
+        v_y += a_y;
+
+        applyAirDrag();
+        applyFrictionDrag();
+        applyTraktion();
+
+        a_x = 0;
+        a_y = 0;
     }
 
-    public void drehe(int gradAenderung) {
-        // todo
+    // berechnet x und y beschleunigung basierend auf der aktuellen drehung des autos
+    public void gibGas() {
+        double rad = Math.toRadians(winkel);
+        a_x += a * Math.cos(rad);
+        a_y += a * Math.sin(rad);
+        gasAktiv = true;
+    }
+
+    // berechnet x und y beschleunigung basierend auf der aktuellen drehung des autos, aber in die entgegengesetzte richtung wie gas
+    public void bremse() {
+        double rad = Math.toRadians(winkel);
+        a_x -= a * Math.cos(rad);
+        a_y -= a * Math.sin(rad);
+    }
+
+    public void dreheLinks() {
+        winkel = (winkel - drehRate + 360) % 360;
+    }
+
+    public void dreheRechts() {
+        winkel = (winkel + drehRate) % 360;
+    }
+
+    // Luftwiderstand: F_drag = 0.5 * Cv * A * rho_luft * v^2, wirkt immer entgegen der Fahrtrichtung
+    private void applyAirDrag() {
+        double v_squared = v_x * v_x + v_y * v_y;
+        double speed = Math.sqrt(v_squared);
+        if (speed == 0) return;
+
+        // F_drag = 0.5 * Cv * A * rho_luft * v^2 (rho = 1.293 kg/m^3 auf Meeresspiegel)
+        double dragForce = 0.5 * Cv * A * 1.293 * v_squared;
+        double maxDragForce = speed * m;
+        if (dragForce > maxDragForce) dragForce = maxDragForce;
+
+        v_x -= (v_x / speed) * (dragForce / m);
+        v_y -= (v_y / speed) * (dragForce / m);
+    }
+
+    // Seitengeschwindigkeit dämpfen ==> Auto folgt seiner Fahrtrichtung
+    // Unter Gas (Heckantrieb): Hinterräder verlieren Querhaftung → https://www.youtube.com/watch?v=7jItw5c_-I0
+    private void applyTraktion() {
+        double rad = Math.toRadians(winkel);
+        double fwdX = Math.cos(rad);
+        double fwdY = Math.sin(rad);
+
+        double forwardSpeed = v_x * fwdX + v_y * fwdY;
+        double lateralX = v_x - forwardSpeed * fwdX;
+        double lateralY = v_y - forwardSpeed * fwdY;
+
+        double grip = gasAktiv ? heckSchlupf : traktion;
+        v_x -= lateralX * grip;
+        v_y -= lateralY * grip;
+
+        gasAktiv = false;
+    }
+
+    // Rollwiderstand: F_rr = Crr * m * g, wirkt immer entgegen der Fahrtrichtung, aber nur wenn das Auto sich bewegt
+    private void applyFrictionDrag() {
+        double speed = Math.sqrt(v_x * v_x + v_y * v_y);
+        if (speed == 0) return;
+
+        double frictionForce = Crr * m * 9.81;
+        double maxFrictionForce = speed * m;
+        if (frictionForce > maxFrictionForce) frictionForce = maxFrictionForce;
+
+        v_x -= (v_x / speed) * (frictionForce / m);
+        v_y -= (v_y / speed) * (frictionForce / m);
+    }
+
+    // schaut dass das auto nicht aus der bahn rausfährt, wenn es die wand berührt wird die position korrigiert und die geschwindigkeit in diese richtung auf 0 gesetzt
+    public void begrenze(double maxX, double maxY) {
+        double halbBreite = 28;
+        double halbHoehe  = 14;
+
+        if (x - halbBreite < 0)    { x = halbBreite;        if (v_x < 0) v_x = 0; }
+        if (x + halbBreite > maxX) { x = maxX - halbBreite; if (v_x > 0) v_x = 0; }
+        if (y - halbHoehe  < 0)    { y = halbHoehe;         if (v_y < 0) v_y = 0; }
+        if (y + halbHoehe  > maxY) { y = maxY - halbHoehe;  if (v_y > 0) v_y = 0; }
+    }
+
+    public double getSpeed() {
+        return Math.sqrt(v_x * v_x + v_y * v_y);
     }
 
     public int[] gebePos() {
-        return new int[] { x, y };
+        return new int[] { (int) x, (int) y };
     }
 
-    public int gibWinkel() {
-        return winkel;
-    }
+    public double gibX()           { return x; }
+    public double gibY()           { return y; }
+    public int    gibWinkel()      { return (int) winkel; }
+    public double gibWinkelDouble(){ return winkel; }
 }

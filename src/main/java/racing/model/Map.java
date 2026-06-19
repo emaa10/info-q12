@@ -2,156 +2,262 @@
 // (c) 2026 - Jakob Grätz (@jakobgraetz)
 // See also:
 // https://en.wikipedia.org/wiki/Random_number_generation
-// https://en.wikipedia.org/wiki/Linear_congruential_generator
 // https://bitesofcode.wordpress.com/2020/04/09/procedural-racetrack-generation/
+// https://github.com/juangallostra/procedural-tracks/blob/master/main.py
 
 package racing.model;
 
-import java.util.Date;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import racing.model.util.geometry.ConvexHull;
+import racing.model.util.geometry.Point;
 
 public class Map {
 
-    private int[][] matrix;
-    private int seed;
-    private int modulus;
-    private int multiplier;
-    private int increment;
-    private int numberOfPoints;
-    private int[] pointCoordinates;
-    private Point[] points;
-    // Die Ziellinie in der Formel 1 wird offiziell als Start-Ziel-Linie bezeichnet.
-    // Sie dient als Startpunkt des Rennens sowie als Zeitmesslinie für die Rundenzeiten
-    // und markiert das Ende jeder gefahrenen Runde und des gesamten Rennens. (vgl. Wikipedia)
-    private Point startFinishPoint;
-    private int[] startFinishCoordinates;
+    private static final int WIDTH = 960;
+    private static final int HEIGHT = 600;
+    private static final int MARGIN = 50;
+    private static final int MIN_POINTS = 20;
+    private static final int MAX_POINTS = 30;
+    private static final int MIN_DISTANCE = 20;
+    private static final int MAX_DISPLACEMENT = 80;
+    private static final double DIFFICULTY = 0.1;
+    private static final int DISTANCE_BETWEEN_POINTS = 20;
+    private static final double MAX_ANGLE = 90.0;
+    private static final int SPLINE_POINTS = 1000;
+    static final int TRACK_WIDTH = 40;
 
-    // With seed as a parameter:
-    public Map(int seed) {
-        this.matrix = new int[64][64];
-        this.seed = seed;
-        this.modulus = (1 << 16) + 1;
-        this.multiplier = 75;
-        this.increment = 0;
-        this.numberOfPoints = 8;
-        this.pointCoordinates = new int[2 * this.numberOfPoints];
-        this.points = new Point[this.numberOfPoints];
-        this.startFinishCoordinates = new int[2];
+    private racing.view.MapView view;
+    private Point[] trackPoints;
+    private List<int[]> centerline;
+    private Random rng;
 
-        lcg(
-            this.seed,
-            this.modulus,
-            this.multiplier,
-            this.increment,
-            this.pointCoordinates,
-            2 * this.numberOfPoints
-        );
-        mod65Arr(pointCoordinates);
+    public Map(racing.view.MapView mapView) {
+        this.view = mapView;
+        this.rng = new Random();
 
-        for (int k = 0, idx = 0; k < pointCoordinates.length; k += 2, idx++) {
-            this.points[idx] = new Point(
-                pointCoordinates[k],
-                pointCoordinates[k + 1]
-            );
-        }
-
-        lcg(
-            this.seed,
-            this.modulus,
-            this.multiplier,
-            this.increment,
-            this.startFinishCoordinates,
-            2
-        );
-        mod65Arr(this.startFinishCoordinates);
-        this.startFinishPoint = new Point(
-            this.startFinishCoordinates[0],
-            this.startFinishCoordinates[1]
-        );
+        Point[] pts = randomPoints();
+        Point[] hull = new ConvexHull().jarvis(pts);
+        this.trackPoints = shapeTrack(hull);
+        this.centerline = smoothTrack(this.trackPoints);
+        this.view.drawTrack(this.centerline, TRACK_WIDTH);
     }
 
-    // Without seed as a parameter:
-    public Map() {
-        // This will be in int range and is good until 18 Jan 2038.
-        // Date.getTime() returns a long by default: until 18th of January 2038, dividing by 1000 is
-        // enough to cast this into an int.
-        int i = (int) (new Date().getTime() / 1000);
-
-        this.matrix = new int[64][64];
-        this.seed = i;
-        this.modulus = (1 << 16) + 1;
-        this.multiplier = 75;
-        this.increment = 0;
-        this.numberOfPoints = 8;
-        this.pointCoordinates = new int[2 * this.numberOfPoints];
-        this.points = new Point[this.numberOfPoints];
-        this.startFinishCoordinates = new int[2];
-
-        lcg(
-            this.seed,
-            this.modulus,
-            this.multiplier,
-            this.increment,
-            this.pointCoordinates,
-            2 * this.numberOfPoints
-        );
-        mod65Arr(pointCoordinates);
-
-        for (int k = 0, idx = 0; k < pointCoordinates.length; k += 2, idx++) {
-            this.points[idx] = new Point(
-                pointCoordinates[k],
-                pointCoordinates[k + 1]
-            );
+    private Point[] randomPoints() {
+        int count = MIN_POINTS + rng.nextInt(MAX_POINTS - MIN_POINTS + 1);
+        List<Point> pts = new ArrayList<>();
+        int attempts = 0;
+        while (pts.size() < count && attempts < 10000) {
+            attempts++;
+            int x = MARGIN + rng.nextInt(WIDTH - 2 * MARGIN + 1);
+            int y = MARGIN + rng.nextInt(HEIGHT - 2 * MARGIN + 1);
+            boolean tooClose = false;
+            for (Point p : pts) {
+                double dx = p.getX() - x;
+                double dy = p.getY() - y;
+                if (Math.sqrt(dx * dx + dy * dy) < MIN_DISTANCE) {
+                    tooClose = true;
+                    break;
+                }
+            }
+            if (!tooClose) pts.add(new Point(x, y));
         }
-
-        lcg(
-            this.seed,
-            this.modulus,
-            this.multiplier,
-            this.increment,
-            this.startFinishCoordinates,
-            2
-        );
-        mod65Arr(this.startFinishCoordinates);
-        this.startFinishPoint = new Point(
-            this.startFinishCoordinates[0],
-            this.startFinishCoordinates[1]
-        );
+        return pts.toArray(new Point[0]);
     }
 
-    // "A linear congruential generator (LCG) is an algorithm that yields a sequence of pseudo-randomized
-    // numbers calculated with a discontinuous piecewise linear equation. The method represents one of the
-    // oldest and best-known pseudorandom number generator algorithms. The theory behind them is relatively
-    // easy to understand, and they are easily implemented and fast, especially on computer hardware which
-    // can provide modular arithmetic by storage-bit truncation."
-    // (https://en.wikipedia.org/wiki/Linear_congruential_generator, 30th of May 2026, 10.31 CEST)
-    // lcg(seed, modulus m, multiplier a, increment c)
-    public void lcg(
-        int seed,
-        int m,
-        int a,
-        int c,
-        int[] randomNumbers,
-        int numberOfRandomNumbers
-    ) {
-        randomNumbers[0] = seed;
+    private Point[] shapeTrack(Point[] hull) {
+        int n = hull.length;
+        Point[] track = new Point[n * 2];
+        for (int i = 0; i < n; i++) {
+            double displacement =
+                Math.pow(rng.nextDouble(), DIFFICULTY) * MAX_DISPLACEMENT;
+            double[] disp = randUnitVector(displacement);
+            int mx = (int) ((hull[i].getX() + hull[(i + 1) % n].getX()) / 2.0 +
+                disp[0]);
+            int my = (int) ((hull[i].getY() + hull[(i + 1) % n].getY()) / 2.0 +
+                disp[1]);
+            track[i * 2] = new Point(hull[i].getX(), hull[i].getY());
+            track[i * 2 + 1] = new Point(mx, my);
+        }
+        for (int iter = 0; iter < 3; iter++) {
+            fixAngles(track);
+            pushPointsApart(track);
+        }
+        for (Point p : track) {
+            p.setX(Math.max(MARGIN, Math.min(WIDTH - MARGIN, p.getX())));
+            p.setY(Math.max(MARGIN, Math.min(HEIGHT - MARGIN, p.getY())));
+        }
+        return track;
+    }
 
-        for (int i = 1; i < numberOfRandomNumbers; i++) {
-            randomNumbers[i] = ((randomNumbers[i - 1] * a) + c) % m;
+    private double[] randUnitVector(double magnitude) {
+        double x = rng.nextGaussian();
+        double y = rng.nextGaussian();
+        double mag = Math.sqrt(x * x + y * y);
+        if (mag == 0) mag = 1;
+        return new double[] { (magnitude * x) / mag, (magnitude * y) / mag };
+    }
+
+    private void fixAngles(Point[] pts) {
+        int n = pts.length;
+        for (int i = 0; i < n; i++) {
+            int prev = (i - 1 + n) % n;
+            int next = (i + 1) % n;
+            double px = pts[i].getX() - pts[prev].getX();
+            double py = pts[i].getY() - pts[prev].getY();
+            double pl = Math.sqrt(px * px + py * py);
+            if (pl > 0) {
+                px /= pl;
+                py /= pl;
+            }
+            double nx = -(pts[i].getX() - pts[next].getX());
+            double ny = -(pts[i].getY() - pts[next].getY());
+            double nl = Math.sqrt(nx * nx + ny * ny);
+            if (nl > 0) {
+                nx /= nl;
+                ny /= nl;
+            }
+            double a = Math.atan2(px * ny - py * nx, px * nx + py * ny);
+            if (Math.abs(Math.toDegrees(a)) <= MAX_ANGLE) continue;
+            double diff = Math.toRadians(MAX_ANGLE * Math.signum(a)) - a;
+            double c = Math.cos(diff);
+            double s = Math.sin(diff);
+            double newX = (nx * c - ny * s) * nl;
+            double newY = (nx * s + ny * c) * nl;
+            pts[next].setX((int) (pts[i].getX() + newX));
+            pts[next].setY((int) (pts[i].getY() + newY));
         }
     }
 
-    // Utility method.
-    public void mod65Arr(int[] arr) {
-        for (int k = 0; k < arr.length; k++) {
-            arr[k] = arr[k] % 65;
+    private void pushPointsApart(Point[] pts) {
+        int n = pts.length;
+        for (int i = 0; i < n; i++) {
+            for (int j = i + 1; j < n; j++) {
+                double dx = pts[j].getX() - pts[i].getX();
+                double dy = pts[j].getY() - pts[i].getY();
+                double dl = Math.sqrt(dx * dx + dy * dy);
+                if (dl >= DISTANCE_BETWEEN_POINTS) continue;
+                if (dl == 0) dl = 1;
+                dx /= dl;
+                dy /= dl;
+                double dif = DISTANCE_BETWEEN_POINTS - dl;
+                dx *= dif;
+                dy *= dif;
+                pts[j].setX((int) (pts[j].getX() + dx));
+                pts[j].setY((int) (pts[j].getY() + dy));
+                pts[i].setX((int) (pts[i].getX() - dx));
+                pts[i].setY((int) (pts[i].getY() - dy));
+            }
         }
     }
 
-    public Point[] getPoints() {
-        return this.points;
+    public List<int[]> smoothTrack(Point[] pts) {
+        int n = pts.length + 1;
+        double[] x = new double[n];
+        double[] y = new double[n];
+        for (int k = 0; k < pts.length; k++) {
+            x[k] = pts[k].getX();
+            y[k] = pts[k].getY();
+        }
+        x[pts.length] = x[0];
+        y[pts.length] = y[0];
+
+        double[] u = new double[n];
+        for (int i = 1; i < n; i++) {
+            double dx = x[i] - x[i - 1];
+            double dy = y[i] - y[i - 1];
+            u[i] = u[i - 1] + Math.sqrt(dx * dx + dy * dy);
+        }
+        for (int i = 0; i < n; i++) u[i] /= u[n - 1];
+
+        double[] mx = periodicSplineSecondDerivatives(x, u);
+        double[] my = periodicSplineSecondDerivatives(y, u);
+
+        List<int[]> result = new ArrayList<>();
+        for (int k = 0; k < SPLINE_POINTS; k++) {
+            double t = (double) k / SPLINE_POINTS;
+            result.add(new int[] {
+                (int) splineEval(t, x, u, mx),
+                (int) splineEval(t, y, u, my),
+            });
+        }
+        return result;
     }
 
-    public Point getStartFinishPoint() {
-        return this.startFinishPoint;
+    static double[] periodicSplineSecondDerivatives(double[] x, double[] u) {
+        int n = x.length;
+
+        double[] h = new double[n];
+        for (int i = 0; i < n - 1; i++) {
+            h[i] = u[i + 1] - u[i];
+        }
+        h[n - 1] = u[0] + 1 - u[n - 1];
+
+        double[] alpha = new double[n];
+        for (int i = 1; i < n - 1; i++) {
+            alpha[i] =
+                (3 / h[i]) * (x[i + 1] - x[i]) -
+                (3 / h[i - 1]) * (x[i] - x[i - 1]);
+        }
+
+        alpha[0] =
+            (3 / h[0]) * (x[1] - x[0]) - (3 / h[n - 1]) * (x[0] - x[n - 1]);
+
+        alpha[n - 1] = alpha[0];
+
+        double[] l = new double[n];
+        double[] mu = new double[n];
+        double[] z = new double[n];
+        double[] c = new double[n];
+
+        l[0] = 1;
+        mu[0] = 0;
+        z[0] = 0;
+
+        for (int i = 1; i < n - 1; i++) {
+            l[i] = 2 * (u[i + 1] - u[i - 1]) - h[i - 1] * mu[i - 1];
+            mu[i] = h[i] / l[i];
+            z[i] = (alpha[i] - h[i - 1] * z[i - 1]) / l[i];
+        }
+
+        l[n - 1] = 1;
+
+        for (int j = n - 2; j >= 0; j--) {
+            c[j] = z[j] - mu[j] * c[j + 1];
+        }
+
+        return c;
+    }
+
+    static double splineEval(double t, double[] x, double[] u, double[] M) {
+        int n = x.length;
+
+        int i = n - 2;
+        for (int j = 0; j < n - 1; j++) {
+            if (t >= u[j] && t < u[j + 1]) {
+                i = j;
+                break;
+            }
+        }
+
+        double h = u[i + 1] - u[i];
+        double a = (u[i + 1] - t) / h;
+        double b = (t - u[i]) / h;
+
+        return (
+            a * x[i] +
+            b * x[i + 1] +
+            (((a * a * a - a) * M[i] + (b * b * b - b) * M[i + 1]) * (h * h)) /
+                6.0
+        );
+    }
+
+    public List<int[]> getCenterline() {
+        return centerline;
+    }
+
+    public void draw() {
+        this.view.drawTrack(this.centerline, TRACK_WIDTH);
     }
 }
