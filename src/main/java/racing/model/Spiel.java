@@ -48,8 +48,11 @@ public class Spiel implements Runnable {
         while (laeuft) {
             // Physik aller Autos aktualisieren
             for (Spieler s : spieler) {
-                s.gibAuto().itr();
-                s.gibAuto().begrenze(960, 600);
+                Auto a = s.gibAuto();
+                a.itr();
+                double dist = level.gibMap().distanceToTrack(a.gibX(), a.gibY());
+                a.applyOffTrackFriction(dist);
+                a.begrenze(960, 600);
             }
 
             // Szene neu zeichnen
