@@ -9,7 +9,7 @@ package racing.model;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
+import racing.model.util.LCG;
 import racing.model.util.geometry.ConvexHull;
 import racing.model.util.geometry.Point;
 
@@ -17,41 +17,78 @@ public class Map {
 
     private static final int WIDTH = 960;
     private static final int HEIGHT = 600;
-    private static final int MARGIN = 50;
-    private static final int MIN_POINTS = 20;
-    private static final int MAX_POINTS = 30;
-    private static final int MIN_DISTANCE = 20;
-    private static final int MAX_DISPLACEMENT = 80;
+    private static final int MARGIN = 100;
+    private static final int MIN_POINTS = 12;
+    private static final int MAX_POINTS = 16;
+    private static final int MIN_DISTANCE = 55;
+    private static final int MAX_DISPLACEMENT = 65;
     private static final double DIFFICULTY = 0.1;
-    private static final int DISTANCE_BETWEEN_POINTS = 20;
-    private static final double MAX_ANGLE = 90.0;
+    private static final int DISTANCE_BETWEEN_POINTS = 70;
+    private static final double MAX_ANGLE = 80.0;
     private static final int SPLINE_POINTS = 1000;
-    static final int TRACK_WIDTH = 40;
+    static final int TRACK_WIDTH = 60;
+
+    // LCG default parameters: modulus = 2^16 + 1 = 65537
+    private static final int LCG_MODULUS = (1 << 16) + 1;
 
     private racing.view.MapView view;
     private Point[] trackPoints;
     private List<int[]> centerline;
-    private Random rng;
+    private boolean[] onTrackGrid;
+    private int[] rngPool;
+    private int rngIdx;
 
     public Map(racing.view.MapView mapView) {
         this.view = mapView;
-        this.rng = new Random();
+        LCG lcg = new LCG();
+        this.rngPool = new int[6000];
+        lcg.randomNumbers(this.rngPool, 6000);
+        this.rngIdx = 1;
 
-        Point[] pts = randomPoints();
-        Point[] hull = new ConvexHull().jarvis(pts);
-        this.trackPoints = shapeTrack(hull);
-        this.centerline = smoothTrack(this.trackPoints);
+        int attempts = 0;
+        this.centerline = null;
+        while (attempts < 30) {
+            Point[] pts = randomPoints();
+            Point[] hull = new ConvexHull().jarvis(pts);
+            this.trackPoints = shapeTrack(hull);
+            attempts++;
+            if (trackPointsIntersect(this.trackPoints)) continue;
+            List<int[]> candidate = smoothTrack(this.trackPoints);
+            if (!splineIntersects(candidate) && !splineTooNarrow(candidate)) {
+                this.centerline = candidate;
+                break;
+            }
+        }
+        if (this.centerline == null) this.centerline = smoothTrack(
+            this.trackPoints
+        );
+        precomputeOnTrackGrid();
         this.view.drawTrack(this.centerline, TRACK_WIDTH);
     }
 
+    private double nextDouble() {
+        if (rngIdx >= rngPool.length) rngIdx = 1;
+        return (double) rngPool[rngIdx++] / LCG_MODULUS;
+    }
+
+    private int nextInt(int n) {
+        return (int) (nextDouble() * n);
+    }
+
+    private double nextGaussian() {
+        double u1 = Math.max(1e-10, nextDouble());
+        double u2 = nextDouble();
+        return Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+    }
+
     private Point[] randomPoints() {
-        int count = MIN_POINTS + rng.nextInt(MAX_POINTS - MIN_POINTS + 1);
+        int count = MIN_POINTS + nextInt(MAX_POINTS - MIN_POINTS + 1);
         List<Point> pts = new ArrayList<>();
         int attempts = 0;
         while (pts.size() < count && attempts < 10000) {
             attempts++;
-            int x = MARGIN + rng.nextInt(WIDTH - 2 * MARGIN + 1);
-            int y = MARGIN + rng.nextInt(HEIGHT - 2 * MARGIN + 1);
+            int x = MARGIN + nextInt(WIDTH - 2 * MARGIN + 1);
+            int y = MARGIN + nextInt(HEIGHT - 2 * MARGIN + 1);
             boolean tooClose = false;
             for (Point p : pts) {
                 double dx = p.getX() - x;
@@ -71,7 +108,7 @@ public class Map {
         Point[] track = new Point[n * 2];
         for (int i = 0; i < n; i++) {
             double displacement =
-                Math.pow(rng.nextDouble(), DIFFICULTY) * MAX_DISPLACEMENT;
+                Math.pow(nextDouble(), DIFFICULTY) * MAX_DISPLACEMENT;
             double[] disp = randUnitVector(displacement);
             int mx = (int) ((hull[i].getX() + hull[(i + 1) % n].getX()) / 2.0 +
                 disp[0]);
@@ -80,7 +117,7 @@ public class Map {
             track[i * 2] = new Point(hull[i].getX(), hull[i].getY());
             track[i * 2 + 1] = new Point(mx, my);
         }
-        for (int iter = 0; iter < 3; iter++) {
+        for (int iter = 0; iter < 5; iter++) {
             fixAngles(track);
             pushPointsApart(track);
         }
@@ -92,8 +129,8 @@ public class Map {
     }
 
     private double[] randUnitVector(double magnitude) {
-        double x = rng.nextGaussian();
-        double y = rng.nextGaussian();
+        double x = nextGaussian();
+        double y = nextGaussian();
         double mag = Math.sqrt(x * x + y * y);
         if (mag == 0) mag = 1;
         return new double[] { (magnitude * x) / mag, (magnitude * y) / mag };
@@ -177,12 +214,40 @@ public class Map {
         List<int[]> result = new ArrayList<>();
         for (int k = 0; k < SPLINE_POINTS; k++) {
             double t = (double) k / SPLINE_POINTS;
-            result.add(new int[] {
-                (int) splineEval(t, x, u, mx),
-                (int) splineEval(t, y, u, my),
-            });
+            int px = Math.max(
+                MARGIN,
+                Math.min(WIDTH - MARGIN - 1, (int) splineEval(t, x, u, mx))
+            );
+            int py = Math.max(
+                MARGIN,
+                Math.min(HEIGHT - MARGIN - 1, (int) splineEval(t, y, u, my))
+            );
+            result.add(new int[] { px, py });
         }
         return result;
+    }
+
+    private void precomputeOnTrackGrid() {
+        onTrackGrid = new boolean[WIDTH * HEIGHT];
+        int halfWidth = TRACK_WIDTH / 2;
+        int hwSq = halfWidth * halfWidth;
+        for (int[] pt : centerline) {
+            for (int dy = -halfWidth; dy <= halfWidth; dy++) {
+                int py = pt[1] + dy;
+                if (py < 0 || py >= HEIGHT) continue;
+                for (int dx = -halfWidth; dx <= halfWidth; dx++) {
+                    if (dx * dx + dy * dy > hwSq) continue;
+                    int px = pt[0] + dx;
+                    if (px < 0 || px >= WIDTH) continue;
+                    onTrackGrid[py * WIDTH + px] = true;
+                }
+            }
+        }
+    }
+
+    public boolean isOnTrack(int x, int y) {
+        if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return false;
+        return onTrackGrid[y * WIDTH + x];
     }
 
     static double[] periodicSplineSecondDerivatives(double[] x, double[] u) {
@@ -251,6 +316,98 @@ public class Map {
             (((a * a * a - a) * M[i] + (b * b * b - b) * M[i + 1]) * (h * h)) /
                 6.0
         );
+    }
+
+    private boolean splineTooNarrow(List<int[]> line) {
+        int step = 5;
+        int m = line.size() / step;
+        int skip = 15;
+        int thresh = (int) (TRACK_WIDTH * 1.5);
+        int threshSq = thresh * thresh;
+        for (int i = 0; i < m; i++) {
+            int[] a = line.get(i * step);
+            for (int j = i + skip; j < m - skip; j++) {
+                int[] b = line.get(j * step);
+                int dx = a[0] - b[0];
+                int dy = a[1] - b[1];
+                if (dx * dx + dy * dy < threshSq) return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean splineIntersects(List<int[]> line) {
+        int step = 5;
+        int m = line.size() / step;
+        for (int i = 0; i < m; i++) {
+            int[] a1 = line.get(i * step);
+            int[] a2 = line.get(((i + 1) % m) * step);
+            for (int j = i + 2; j < m; j++) {
+                if (i == 0 && j == m - 1) continue;
+                int[] b1 = line.get(j * step);
+                int[] b2 = line.get(((j + 1) % m) * step);
+                if (
+                    segmentsIntersect(
+                        a1[0],
+                        a1[1],
+                        a2[0],
+                        a2[1],
+                        b1[0],
+                        b1[1],
+                        b2[0],
+                        b2[1]
+                    )
+                ) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean trackPointsIntersect(Point[] pts) {
+        int n = pts.length;
+        for (int i = 0; i < n; i++) {
+            int ax1 = pts[i].getX(),
+                ay1 = pts[i].getY();
+            int ax2 = pts[(i + 1) % n].getX(),
+                ay2 = pts[(i + 1) % n].getY();
+            for (int j = i + 2; j < n; j++) {
+                if (i == 0 && j == n - 1) continue;
+                int bx1 = pts[j].getX(),
+                    by1 = pts[j].getY();
+                int bx2 = pts[(j + 1) % n].getX(),
+                    by2 = pts[(j + 1) % n].getY();
+                if (segmentsIntersect(ax1, ay1, ax2, ay2, bx1, by1, bx2, by2)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean segmentsIntersect(
+        int ax1,
+        int ay1,
+        int ax2,
+        int ay2,
+        int bx1,
+        int by1,
+        int bx2,
+        int by2
+    ) {
+        long d1 = cross(bx2 - bx1, by2 - by1, ax1 - bx1, ay1 - by1);
+        long d2 = cross(bx2 - bx1, by2 - by1, ax2 - bx1, ay2 - by1);
+        long d3 = cross(ax2 - ax1, ay2 - ay1, bx1 - ax1, by1 - ay1);
+        long d4 = cross(ax2 - ax1, ay2 - ay1, bx2 - ax1, by2 - ay1);
+        return (
+            ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) &&
+            ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))
+        );
+    }
+
+    private long cross(long dx, long dy, long px, long py) {
+        return dx * py - dy * px;
     }
 
     public List<int[]> getCenterline() {
