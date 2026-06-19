@@ -6,6 +6,8 @@ public class Auto implements Datenelement {
 
     private double x;
     private double y;
+    private double prevX;
+    private double prevY;
     private double winkel; // in Grad (0 = rechts, 90 = unten)
 
     private double v_x;
@@ -26,6 +28,8 @@ public class Auto implements Datenelement {
     public Auto(double x, double y, double winkel) {
         this.x = x;
         this.y = y;
+        this.prevX = x;
+        this.prevY = y;
         this.winkel = winkel;
         this.a        = 0.22;
         this.m        = 1000.0;
@@ -39,6 +43,8 @@ public class Auto implements Datenelement {
 
     // in jedem step wird diese Methode aufgerufen, um die Position zu aktualisieren und auch die beschleunigung zurückzusetzen
     public void itr() {
+        prevX = x;
+        prevY = y;
         x += v_x;
         y += v_y;
 
@@ -145,4 +151,22 @@ public class Auto implements Datenelement {
     public double gibY()           { return y; }
     public int    gibWinkel()      { return (int) winkel; }
     public double gibWinkelDouble(){ return winkel; }
+
+    // schaut ob das auto die linie von (ax,ay) nach (bx,by) überquert hat
+    // tx/ty ist die fahrtrichtung der strecke, damit rückwärts nicht zählt
+    public boolean prüfeLapCrossing(double ax, double ay, double bx, double by, double tx, double ty) {
+        double dx = x - prevX;
+        double dy = y - prevY;
+
+        // nur wenn das auto sich vorwärts bewegt
+        if (dx * tx + dy * ty <= 0) return false;
+
+        // kreuzprodukt-test ob die bewegung die linie schneidet
+        double d1 = (bx - ax) * (prevY - ay) - (by - ay) * (prevX - ax);
+        double d2 = (bx - ax) * (y - ay)     - (by - ay) * (x - ax);
+        double d3 = dx * (ay - prevY) - dy * (ax - prevX);
+        double d4 = dx * (by - prevY) - dy * (bx - prevX);
+
+        return d1 * d2 < 0 && d3 * d4 < 0;
+    }
 }
