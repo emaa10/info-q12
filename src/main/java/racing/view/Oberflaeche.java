@@ -127,10 +127,11 @@ public class Oberflaeche {
         });
     }
 
-    // zeichnet das hud oben rechts mit runde, zeit und bester runde
+    // zeichnet das hud oben rechts
     // wenn aufStrecke false ist, wird eine rote warnung angezeigt
     public void hudZeichnen(int runde, long aktuelleZeitMs, long besteRundeMs,
-                             boolean aufStrecke, int checkpointFortschritt, int totalCheckpoints) {
+                             boolean aufStrecke, int checkpointFortschritt, int totalCheckpoints,
+                             int kollisionen, int letzterScore) {
         Platform.runLater(() -> {
             // warnung wenn man von der strecke fährt
             if (!aufStrecke) {
@@ -145,21 +146,23 @@ public class Oberflaeche {
             double px = BREITE - 230;
             double py = 12;
             gc.setFill(Color.rgb(0, 0, 0, 0.55));
-            gc.fillRoundRect(px, py, 218, 96, 10, 10);
+            gc.fillRoundRect(px, py, 218, 126, 10, 10);
 
             gc.setFill(Color.WHITE);
             gc.setFont(Font.font("Monospace", FontWeight.BOLD, 13));
             gc.fillText("Runde:   " + (runde == 0 ? "-" : runde), px + 12, py + 22);
             gc.fillText("Zeit:    " + formatZeit(aktuelleZeitMs), px + 12, py + 44);
             gc.fillText("Beste:   " + (besteRundeMs < 0 ? "--:--.---" : formatZeit(besteRundeMs)), px + 12, py + 66);
+            gc.fillText("Crashes: " + kollisionen, px + 12, py + 88);
+            gc.fillText("Score:   " + (letzterScore == 0 ? "-" : letzterScore), px + 12, py + 110);
 
             // checkpoint fortschrittsbalken
             gc.setFill(Color.web("#ffffff", 0.25));
-            gc.fillRoundRect(px + 12, py + 76, 194, 10, 5, 5);
+            gc.fillRoundRect(px + 12, py + 116, 194, 8, 4, 4);
             if (totalCheckpoints > 0) {
                 double balken = 194.0 * checkpointFortschritt / totalCheckpoints;
                 gc.setFill(checkpointFortschritt == totalCheckpoints ? Color.GREEN : Color.YELLOW);
-                gc.fillRoundRect(px + 12, py + 76, balken, 10, 5, 5);
+                gc.fillRoundRect(px + 12, py + 116, balken, 8, 4, 4);
             }
         });
     }

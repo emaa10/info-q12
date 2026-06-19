@@ -303,9 +303,11 @@ public class Map {
             double ny = tx;
             double cx = centerline.get(idx)[0];
             double cy = centerline.get(idx)[1];
+            // etwas breiter als die strecke damit man sie sicher trifft
+            double breite = TRACK_WIDTH * 0.75;
             result[i] = new double[] {
-                cx - nx * TRACK_WIDTH / 2.0, cy - ny * TRACK_WIDTH / 2.0,
-                cx + nx * TRACK_WIDTH / 2.0, cy + ny * TRACK_WIDTH / 2.0,
+                cx - nx * breite, cy - ny * breite,
+                cx + nx * breite, cy + ny * breite,
                 tx, ty
             };
         }

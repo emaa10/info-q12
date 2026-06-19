@@ -24,6 +24,8 @@ public class Auto implements Datenelement {
     private final double traktion;    // 0 = Eis, 1 = perfekter Grip ==> man könnte bereiche für verschiedene Untergründe definieren
     private final double heckSchlupf; // Lateralgrip unter Gas (heck-drift)
     private boolean gasAktiv = false;
+    private int kollisionsAnzahl = 0;
+    private int kollisionsCooldown = 0;
 
     public Auto(double x, double y, double winkel) {
         this.x = x;
@@ -45,6 +47,7 @@ public class Auto implements Datenelement {
     public void itr() {
         prevX = x;
         prevY = y;
+        if (kollisionsCooldown > 0) kollisionsCooldown--;
         x += v_x;
         y += v_y;
 
@@ -147,19 +150,30 @@ public class Auto implements Datenelement {
         return new int[] { (int) x, (int) y };
     }
 
+    // wenn das auto einen baum trifft: geschwindigkeit stark reduzieren
+    public void kollision() {
+        if (kollisionsCooldown > 0) return;
+        v_x *= 0.2;
+        v_y *= 0.2;
+        kollisionsAnzahl++;
+        kollisionsCooldown = 40;
+    }
+
+    public int  gibKollisionen()      { return kollisionsAnzahl; }
+    public void resetKollisionen()    { kollisionsAnzahl = 0; }
+
     public double gibX()           { return x; }
     public double gibY()           { return y; }
     public int    gibWinkel()      { return (int) winkel; }
     public double gibWinkelDouble(){ return winkel; }
 
     // schaut ob das auto die linie von (ax,ay) nach (bx,by) überquert hat
-    // tx/ty ist die fahrtrichtung der strecke, damit rückwärts nicht zählt
-    public boolean prüfeLapCrossing(double ax, double ay, double bx, double by, double tx, double ty) {
+    // richtungPruefen=true: rückwärts zählt nicht (für startlinie), false: für checkpoints
+    public boolean prüfeLapCrossing(double ax, double ay, double bx, double by, double tx, double ty, boolean richtungPruefen) {
         double dx = x - prevX;
         double dy = y - prevY;
 
-        // nur wenn das auto sich vorwärts bewegt
-        if (dx * tx + dy * ty <= 0) return false;
+        if (richtungPruefen && dx * tx + dy * ty <= 0) return false;
 
         // kreuzprodukt-test ob die bewegung die linie schneidet
         double d1 = (bx - ax) * (prevY - ay) - (by - ay) * (prevX - ax);

@@ -27,6 +27,7 @@ public class Spiel implements Runnable {
     private long besteRunde   = -1;
     private int  kreuzungsCooldown = 300; // ~5s Startcooldown
     private boolean aufStrecke = true;
+    private int letzterScore = 0;
 
     private static final int  CHECKPOINT_ANZAHL = 8;
     private static final double STRECKEN_TOLERANZ = 38.0; // px vom Mittelpunkt
@@ -73,15 +74,31 @@ public class Spiel implements Runnable {
                 s.gibAuto().begrenze(960, 600);
             }
 
+            // Baum-Kollision prüfen
+            Listenelement elKollision = level.gibGegenstaende().gibAnfang();
+            while (!elKollision.istAbschluss()) {
+                Gegenstand g = (Gegenstand) ((Knoten) elKollision).gebeDaten();
+                if (g instanceof Baum) {
+                    Baum b = (Baum) g;
+                    for (Spieler s : spieler) {
+                        Auto a = s.gibAuto();
+                        if (b.kollidiertMit((int) a.gibX(), (int) a.gibY())) {
+                            a.kollision();
+                        }
+                    }
+                }
+                elKollision = ((Knoten) elKollision).gebeNachfolger();
+            }
+
             // Off-Track und Checkpoint-Logik
             for (Spieler s : spieler) {
                 Auto a = s.gibAuto();
                 aufStrecke = level.gibMap().istNahAnStrecke(a.gibX(), a.gibY(), STRECKEN_TOLERANZ);
 
-                // Nächsten Checkpoint prüfen
+                // nächsten checkpoint prüfen (keine richtungsprüfung nötig)
                 if (naechsterCheckpoint < checkpoints.length) {
                     double[] cp = checkpoints[naechsterCheckpoint];
-                    if (a.prüfeLapCrossing(cp[0], cp[1], cp[2], cp[3], cp[4], cp[5])) {
+                    if (a.prüfeLapCrossing(cp[0], cp[1], cp[2], cp[3], cp[4], cp[5], false)) {
                         naechsterCheckpoint++;
                     }
                 }
@@ -96,16 +113,19 @@ public class Spiel implements Runnable {
                     if (a.prüfeLapCrossing(
                             startLinieA[0], startLinieA[1],
                             startLinieB[0], startLinieB[1],
-                            startLinieTangent[0], startLinieTangent[1])) {
+                            startLinieTangent[0], startLinieTangent[1], true)) {
                         long jetzt = System.currentTimeMillis();
                         if (lapStartZeit < 0) {
                             // Erste Überquerung: Timer starten
                             lapStartZeit = jetzt;
                         } else if (naechsterCheckpoint == checkpoints.length) {
-                            // Gültige Runde: alle Checkpoints passiert
+                            // gültige runde: alle checkpoints passiert
                             long lapZeit = jetzt - lapStartZeit;
                             lapZaehler++;
                             if (besteRunde < 0 || lapZeit < besteRunde) besteRunde = lapZeit;
+                            int kollisionen = a.gibKollisionen();
+                            letzterScore = Math.max(0, 10000 - (int)(lapZeit / 100) - kollisionen * 500);
+                            a.resetKollisionen();
                             lapStartZeit = jetzt;
                         }
                         // Checkpoints immer zurücksetzen (auch bei ungültiger Runde)
@@ -143,8 +163,9 @@ public class Spiel implements Runnable {
 
             // HUD zeichnen
             long aktuelleZeit = lapStartZeit < 0 ? 0 : System.currentTimeMillis() - lapStartZeit;
+            int kollisionen = spieler[0].gibAuto().gibKollisionen();
             this.oberflaeche.hudZeichnen(lapZaehler, aktuelleZeit, besteRunde,
-                    aufStrecke, naechsterCheckpoint, checkpoints.length);
+                    aufStrecke, naechsterCheckpoint, checkpoints.length, kollisionen, letzterScore);
 
             try {
                 Thread.sleep(16); // ca. 60 FPS
