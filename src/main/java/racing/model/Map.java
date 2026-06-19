@@ -257,6 +257,17 @@ public class Map {
         return centerline;
     }
 
+    public double distanceToTrack(double x, double y) {
+        double minDist = Double.MAX_VALUE;
+        for (int[] pt : centerline) {
+            double dx = pt[0] - x;
+            double dy = pt[1] - y;
+            double d = Math.sqrt(dx * dx + dy * dy);
+            if (d < minDist) minDist = d;
+        }
+        return Math.max(0.0, minDist - TRACK_WIDTH / 2.0);
+    }
+
     public void draw() {
         this.view.drawTrack(this.centerline, TRACK_WIDTH);
     }
