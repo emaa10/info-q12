@@ -24,6 +24,7 @@ public class Oberflaeche {
     private final GraphicsContext gc;
     private final Image baumBild;
     private final Image autoBild;
+    private final Image grasBild;
     private final MapView mapView;
 
     private final Set<KeyCode> gedrueckteTasten = new HashSet<>();
@@ -35,6 +36,7 @@ public class Oberflaeche {
         this.wurzel.setStyle("-fx-background-color: white;");
         this.baumBild = new Image(getClass().getResourceAsStream("/images/tree.png"));
         this.autoBild = new Image(getClass().getResourceAsStream("/images/auto_m2.png"));
+        this.grasBild = new Image(getClass().getResourceAsStream("/images/grass.jpg"));
         this.mapView  = new MapView(this.gc);
     }
 
@@ -62,7 +64,14 @@ public class Oberflaeche {
     }
 
     public void loesche() {
-        Platform.runLater(() -> gc.clearRect(0, 0, BREITE, HOEHE));
+        Platform.runLater(() -> {
+            int kachelGroesse = 200;
+            for (int x = 0; x < BREITE; x += kachelGroesse) {
+                for (int y = 0; y < HOEHE; y += kachelGroesse) {
+                    gc.drawImage(grasBild, x, y, kachelGroesse, kachelGroesse);
+                }
+            }
+        });
     }
 
     public void autoZeichnen(double x, double y, double winkel) {
