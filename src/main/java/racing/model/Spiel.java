@@ -1,5 +1,9 @@
 package racing.model;
 
+import java.util.List;
+
+import racing.datastructure.Knoten;
+import racing.datastructure.Listenelement;
 import racing.view.Oberflaeche;
 
 // model-teil
@@ -12,14 +16,42 @@ public class Spiel implements Runnable {
 
     private volatile boolean laeuft;
 
+    // Lap-Timer & Checkpoints
+    private double[] startLinieA;
+    private double[] startLinieB;
+    private double[] startLinieTangent;
+    private double[][] checkpoints;
+    private int  naechsterCheckpoint = 0;
+    private long lapStartZeit = -1;
+    private int  lapZaehler   = 0;
+    private long besteRunde   = -1;
+    private int  kreuzungsCooldown = 300;
+    private boolean aufStrecke = true;
+    private int letzterScore = 0;
+
+    private static final int  CHECKPOINT_ANZAHL = 8;
+    private static final double STRECKEN_TOLERANZ = 38.0;
+
     public Spiel(Oberflaeche oberflaeche) {
         this.oberflaeche = oberflaeche;
         this.oberflaeche.loesche();
         this.datenbank = new Datenbank();
         this.datenbank.verbinde();
-        this.spieler = new Spieler[0];
         this.level = new Level(new Map(this.oberflaeche.getMapView()));
-        // level wird später z. B. mit einer Map erzeugt
+
+        // Spieler mit Auto am ersten Centerline-Punkt (Start-Ziel-Linie) platzieren
+        List<int[]> centerline = this.level.gibMap().getCenterline();
+        int[] startPt = centerline.get(0);
+        int[] nextPt  = centerline.get(1);
+        double startAngle = Math.toDegrees(Math.atan2(nextPt[1] - startPt[1], nextPt[0] - startPt[0]));
+        Auto auto = new Auto(startPt[0], startPt[1], startAngle);
+        this.spieler = new Spieler[] { new Spieler("Spieler 1", auto) };
+
+        Map map = this.level.gibMap();
+        this.startLinieA       = map.getStartLinieA();
+        this.startLinieB       = map.getStartLinieB();
+        this.startLinieTangent = map.getStartLinieTangent();
+        this.checkpoints       = map.getCheckpoints(CHECKPOINT_ANZAHL);
     }
 
     @Override
@@ -30,9 +62,109 @@ public class Spiel implements Runnable {
 
     // game loop ihr deutschen
     public void spieleKreis() {
+        level.platziereGegenstand(new Baum(), 200, 200);
+        level.platziereGegenstand(new Baum(), 400, 300);
+        level.platziereGegenstand(new Baum(), 600, 150);
+
+        // Spielschleife
         while (laeuft) {
+            // Physik aller Autos aktualisieren
+            for (Spieler s : spieler) {
+                Auto a = s.gibAuto();
+                a.itr();
+                double dist = level.gibMap().distanceToTrack(a.gibX(), a.gibY());
+                a.applyOffTrackFriction(dist);
+                a.begrenze(960, 600);
+            }
+
+            Listenelement elKollision = level.gibGegenstaende().gibAnfang();
+            while (!elKollision.istAbschluss()) {
+                Gegenstand g = (Gegenstand) ((Knoten) elKollision).gebeDaten();
+                if (g instanceof Baum) {
+                    Baum b = (Baum) g;
+                    for (Spieler s : spieler) {
+                        Auto a = s.gibAuto();
+                        if (b.kollidiertMit((int) a.gibX(), (int) a.gibY())) {
+                            a.kollision();
+                        }
+                    }
+                }
+                elKollision = ((Knoten) elKollision).gebeNachfolger();
+            }
+
+            for (Spieler s : spieler) {
+                Auto a = s.gibAuto();
+                aufStrecke = level.gibMap().istNahAnStrecke(a.gibX(), a.gibY(), STRECKEN_TOLERANZ);
+
+                // nächsten checkpoint prüfen (keine richtungsprüfung nötig)
+                if (naechsterCheckpoint < checkpoints.length) {
+                    double[] cp = checkpoints[naechsterCheckpoint];
+                    if (a.prüfeLapCrossing(cp[0], cp[1], cp[2], cp[3], cp[4], cp[5], false)) {
+                        naechsterCheckpoint++;
+                    }
+                }
+            }
+
+            if (kreuzungsCooldown > 0) {
+                kreuzungsCooldown--;
+            } else {
+                for (Spieler s : spieler) {
+                    Auto a = s.gibAuto();
+                    if (a.prüfeLapCrossing(
+                            startLinieA[0], startLinieA[1],
+                            startLinieB[0], startLinieB[1],
+                            startLinieTangent[0], startLinieTangent[1], true)) {
+                        long jetzt = System.currentTimeMillis();
+                        if (lapStartZeit < 0) {
+                            lapStartZeit = jetzt;
+                        } else if (naechsterCheckpoint == checkpoints.length) {
+                            // gültige runde: alle checkpoints passiert
+                            long lapZeit = jetzt - lapStartZeit;
+                            lapZaehler++;
+                            if (besteRunde < 0 || lapZeit < besteRunde) besteRunde = lapZeit;
+                            int kollisionen = a.gibKollisionen();
+                            letzterScore = Math.max(0, 10000 - (int)(lapZeit / 100) - kollisionen * 500);
+                            a.resetKollisionen();
+                            lapStartZeit = jetzt;
+                        }
+                        naechsterCheckpoint = 0;
+                        kreuzungsCooldown = 180;
+                    }
+                }
+            }
+
+            // Szene neu zeichnen
+            this.oberflaeche.loesche();
+
+            // Track neu zeichnen (MapView übernimmt die komplette Streckenlogik)
+            this.level.gibMap().draw();
+
+            for (int i = naechsterCheckpoint; i < checkpoints.length; i++) {
+                double[] cp = checkpoints[i];
+                this.oberflaeche.checkpointZeichnen(cp[0], cp[1], cp[2], cp[3], i == naechsterCheckpoint);
+            }
+
+            Listenelement el = level.gibGegenstaende().gibAnfang();
+            while (!el.istAbschluss()) {
+                Gegenstand g = (Gegenstand) ((Knoten) el).gebeDaten();
+                int[] pos = g.gebePosition();
+                this.oberflaeche.baumZeichnen(pos[0], pos[1]);
+                el = ((Knoten) el).gebeNachfolger();
+            }
+
+            // Autos zeichnen (über alles andere)
+            for (Spieler s : spieler) {
+                Auto a = s.gibAuto();
+                this.oberflaeche.autoZeichnen(a.gibX(), a.gibY(), a.gibWinkelDouble());
+            }
+
+            long aktuelleZeit = lapStartZeit < 0 ? 0 : System.currentTimeMillis() - lapStartZeit;
+            int kollisionen = spieler[0].gibAuto().gibKollisionen();
+            this.oberflaeche.hudZeichnen(lapZaehler, aktuelleZeit, besteRunde,
+                    aufStrecke, naechsterCheckpoint, checkpoints.length, kollisionen, letzterScore);
+
             try {
-                Thread.sleep(16); // ca. 60 Bilder pro Sekunde
+                Thread.sleep(16); // ca. 60 FPS
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 laeuft = false;
