@@ -46,7 +46,6 @@ public class Auto implements Datenelement {
         v_y += a_y;
 
         applyAirDrag();
-        applyFrictionDrag();
         applyTraktion();
 
         a_x = 0;
@@ -109,17 +108,12 @@ public class Auto implements Datenelement {
         gasAktiv = false;
     }
 
-    // Rollwiderstand: F_rr = Crr * m * g, wirkt immer entgegen der Fahrtrichtung, aber nur wenn das Auto sich bewegt
-    private void applyFrictionDrag() {
-        double speed = Math.sqrt(v_x * v_x + v_y * v_y);
-        if (speed == 0) return;
 
-        double frictionForce = Crr * m * 9.81;
-        double maxFrictionForce = speed * m;
-        if (frictionForce > maxFrictionForce) frictionForce = maxFrictionForce;
-
-        v_x -= (v_x / speed) * (frictionForce / m);
-        v_y -= (v_y / speed) * (frictionForce / m);
+    // je weiter das Auto vom Track entfernt ist, desto mehr Reibung (0.99 auf Track, 0.90 weit draußen)
+    public void applyOffTrackFriction(double distVomTrack) {
+        double faktor = 0.99 - 0.09 * (1.0 - Math.exp(-distVomTrack / 30.0));
+        v_x *= faktor;
+        v_y *= faktor;
     }
 
     // schaut dass das auto nicht aus der bahn rausfährt, wenn es die wand berührt wird die position korrigiert und die geschwindigkeit in diese richtung auf 0 gesetzt
