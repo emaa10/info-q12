@@ -435,7 +435,10 @@ public class Map {
         double tx = centerline.get(1)[0] - centerline.get(n - 1)[0];
         double ty = centerline.get(1)[1] - centerline.get(n - 1)[1];
         double len = Math.sqrt(tx * tx + ty * ty);
-        if (len > 0) { tx /= len; ty /= len; }
+        if (len > 0) {
+            tx /= len;
+            ty /= len;
+        }
         return new double[] { tx, ty };
     }
 
@@ -444,14 +447,20 @@ public class Map {
         double[] t = getStartLinieTangent();
         int[] c = centerline.get(0);
         // normal ist senkrecht zur tangente
-        return new double[] { c[0] - (-t[1]) * TRACK_WIDTH / 2.0, c[1] - t[0] * TRACK_WIDTH / 2.0 };
+        return new double[] {
+            c[0] - ((-t[1]) * TRACK_WIDTH) / 2.0,
+            c[1] - (t[0] * TRACK_WIDTH) / 2.0,
+        };
     }
 
     // rechter endpunkt der startlinie
     public double[] getStartLinieB() {
         double[] t = getStartLinieTangent();
         int[] c = centerline.get(0);
-        return new double[] { c[0] + (-t[1]) * TRACK_WIDTH / 2.0, c[1] + t[0] * TRACK_WIDTH / 2.0 };
+        return new double[] {
+            c[0] + ((-t[1]) * TRACK_WIDTH) / 2.0,
+            c[1] + (t[0] * TRACK_WIDTH) / 2.0,
+        };
     }
 
     // gibt checkpoints gleichmäßig verteilt auf der strecke zurück
@@ -460,13 +469,16 @@ public class Map {
         int n = centerline.size();
         double[][] result = new double[anzahl][];
         for (int i = 0; i < anzahl; i++) {
-            int idx = (i + 1) * n / (anzahl + 1);
+            int idx = ((i + 1) * n) / (anzahl + 1);
             int prev = (idx - 1 + n) % n;
             int next = (idx + 1) % n;
             double tx = centerline.get(next)[0] - centerline.get(prev)[0];
             double ty = centerline.get(next)[1] - centerline.get(prev)[1];
             double len = Math.sqrt(tx * tx + ty * ty);
-            if (len > 0) { tx /= len; ty /= len; }
+            if (len > 0) {
+                tx /= len;
+                ty /= len;
+            }
             double nx = -ty;
             double ny = tx;
             double cx = centerline.get(idx)[0];
@@ -474,9 +486,12 @@ public class Map {
             // etwas breiter als die strecke damit man sie sicher trifft
             double breite = TRACK_WIDTH * 0.75;
             result[i] = new double[] {
-                cx - nx * breite, cy - ny * breite,
-                cx + nx * breite, cy + ny * breite,
-                tx, ty
+                cx - nx * breite,
+                cy - ny * breite,
+                cx + nx * breite,
+                cy + ny * breite,
+                tx,
+                ty,
             };
         }
         return result;

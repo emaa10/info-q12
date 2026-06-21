@@ -13,8 +13,6 @@ public class MapView {
     private static final int BORDER_WIDTH = 8;
     private static final Color TRACK_SURFACE = Color.web("#c4c0b0");
     private static final Color TRACK_BORDER = Color.web("#8a8070");
-    private static final Color GRASS_BASE = Color.web("#4a8c4a");
-    private static final Color GRASS_STRIPE = Color.web("#5a9a5a");
     private static final Color KERB_RED = Color.web("#cc2200");
 
     private final GraphicsContext gc;
@@ -81,7 +79,6 @@ public class MapView {
                     normalY[ri] * (radius + BORDER_WIDTH);
             }
 
-            // Per-point curvature (used for inner-corner gap patching and S/F placement)
             double[] angles = new double[n];
             for (int i = 0; i < n; i++) {
                 int prev = (i - 10 + n) % n,
@@ -105,20 +102,6 @@ public class MapView {
                 );
             }
 
-            // 1. Textured grass
-            gc.setFill(GRASS_BASE);
-            gc.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-            gc.setGlobalAlpha(0.13);
-            gc.setFill(GRASS_STRIPE);
-            for (int y = 0; y < CANVAS_HEIGHT; y += 5) gc.fillRect(
-                0,
-                y,
-                CANVAS_WIDTH,
-                2
-            );
-            gc.setGlobalAlpha(1.0);
-
-            // 2. Drop shadow
             gc.save();
             gc.setGlobalAlpha(0.22);
             gc.setFill(Color.BLACK);
@@ -126,10 +109,8 @@ public class MapView {
             gc.fillPolygon(borderPolyX, borderPolyY, 2 * n);
             gc.restore();
 
-            // 3. Border
             gc.setFill(TRACK_BORDER);
             gc.fillPolygon(borderPolyX, borderPolyY, 2 * n);
-            // Patch inner-corner gaps in the border polygon
             gc.setFill(TRACK_BORDER);
             for (int i = 0; i < n; i++) {
                 if (angles[i] > 0.4) {
@@ -140,14 +121,11 @@ public class MapView {
                 }
             }
 
-            // 4. Track surface
             gc.setFill(TRACK_SURFACE);
             gc.fillPolygon(trackPolyX, trackPolyY, 2 * n);
-            // Seal the polygon closing-edge seam at index 0 (fillPolygon can leave a gap there)
             gc.setStroke(TRACK_SURFACE);
             gc.setLineWidth(6.0);
             gc.strokeLine(leftX[0], leftY[0], rightX[0], rightY[0]);
-            // Patch inner-corner gaps in the track surface polygon
             gc.setFill(TRACK_SURFACE);
             for (int i = 0; i < n; i++) {
                 if (angles[i] > 0.4) {
@@ -213,7 +191,6 @@ public class MapView {
             gc.strokePolyline(cxArr, cyArr, cCount + 1);
             gc.restore();
 
-            // 8. Start/finish checkerboard at the straightest point on the track
             placeStartFinishLine(
                 centerline.get(sfIndex)[0],
                 centerline.get(sfIndex)[1],
