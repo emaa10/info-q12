@@ -223,3 +223,17 @@ public class Oberflaeche {
         });
     }
 }
+public class Hauptmenü
+{
+    private VBox wurtzel;
+    public Hauptmenü(Runnable spielstarten)
+    {
+        Text titel = new Text("RACING GAME");
+        titel.setFont(Font.font("Arial", FontWeight.Bold, 40);
+        Button spielenB = new Button("Spielen");
+        Button optionenB = new Button("Optionen");
+        Button beendenB = new Button("Beenden");
+        spielenB.setOnAction(e -> spielen.run());
+        beendenB.setOnAction(e -> Platform.exit());
+        //Fehlt: Optionen; Hintergrundbild;...
+    }
