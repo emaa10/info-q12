@@ -62,9 +62,16 @@ public class Spiel implements Runnable {
 
     // game loop ihr deutschen
     public void spieleKreis() {
-        level.platziereGegenstand(new Baum(), 200, 200);
-        level.platziereGegenstand(new Baum(), 400, 300);
-        level.platziereGegenstand(new Baum(), 600, 150);
+        Map map = this.level.gibMap();
+        int x = 150, y = 80;
+        while (map.distanceToTrack(x, y) < 120) y += 10;
+        level.platziereGegenstand(new Baum(), x, y);
+        x = 780; y = 80;
+        while (map.distanceToTrack(x, y) < 120) y += 10;
+        level.platziereGegenstand(new Baum(), x, y);
+        x = 480; y = 520;
+        while (map.distanceToTrack(x, y) < 120) y -= 10;
+        level.platziereGegenstand(new Baum(), x, y);
 
         // Spielschleife
         while (laeuft) {
