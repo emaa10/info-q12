@@ -26,6 +26,7 @@ public class Oberflaeche {
     private final Image baumBild;
     private final Image autoBild;
     private final Image grasBild;
+    private final Image nitroBild;
     private final MapView mapView;
 
     private final Set<KeyCode> gedrueckteTasten = new HashSet<>();
@@ -43,6 +44,9 @@ public class Oberflaeche {
         );
         this.grasBild = new Image(
             getClass().getResourceAsStream("/images/grass.jpg")
+        );
+        this.nitroBild = new Image(
+            getClass().getResourceAsStream("/images/nitro.png")
         );
         this.mapView = new MapView(this.gc);
     }
@@ -100,6 +104,12 @@ public class Oberflaeche {
         });
     }
 
+    public void nitroZeichnen(int x, int y) {
+        Platform.runLater(() -> {
+            gc.drawImage(nitroBild, x, y, 36, 36);
+        });
+    }
+
     public void testSzene() {
         Platform.runLater(() -> {
             gc.clearRect(0, 0, BREITE, HOEHE);
@@ -153,7 +163,9 @@ public class Oberflaeche {
         int checkpointFortschritt,
         int totalCheckpoints,
         int kollisionen,
-        int letzterScore
+        int letzterScore,
+        String nitroStatus,
+        double nitroFortschritt
     ) {
         Platform.runLater(() -> {
             // warnung wenn man von der strecke fährt
@@ -173,7 +185,7 @@ public class Oberflaeche {
             double px = BREITE - 230;
             double py = 12;
             gc.setFill(Color.rgb(0, 0, 0, 0.55));
-            gc.fillRoundRect(px, py, 218, 126, 10, 10);
+            gc.fillRoundRect(px, py, 218, 158, 10, 10);
 
             gc.setFill(Color.WHITE);
             gc.setFont(Font.font("Monospace", FontWeight.BOLD, 13));
@@ -199,10 +211,20 @@ public class Oberflaeche {
                 px + 12,
                 py + 110
             );
+            gc.fillText("Nitro:   " + nitroStatus, px + 12, py + 132);
+
+            double nitroBalken =
+                Math.max(0, Math.min(1, nitroFortschritt)) * 194.0;
+            gc.setFill(Color.web("#ffffff", 0.25));
+            gc.fillRoundRect(px + 12, py + 138, 194, 8, 4, 4);
+            gc.setFill(
+                nitroStatus.equals("BOOST") ? Color.CYAN : Color.web("#4aa3ff")
+            );
+            gc.fillRoundRect(px + 12, py + 138, nitroBalken, 8, 4, 4);
 
             // checkpoint fortschrittsbalken
             gc.setFill(Color.web("#ffffff", 0.25));
-            gc.fillRoundRect(px + 12, py + 116, 194, 8, 4, 4);
+            gc.fillRoundRect(px + 12, py + 146, 194, 8, 4, 4);
             if (totalCheckpoints > 0) {
                 double balken =
                     (194.0 * checkpointFortschritt) / totalCheckpoints;
@@ -211,7 +233,7 @@ public class Oberflaeche {
                         ? Color.GREEN
                         : Color.YELLOW
                 );
-                gc.fillRoundRect(px + 12, py + 116, balken, 8, 4, 4);
+                gc.fillRoundRect(px + 12, py + 146, balken, 8, 4, 4);
             }
         });
     }

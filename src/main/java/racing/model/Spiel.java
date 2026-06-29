@@ -1,5 +1,7 @@
 package racing.model;
 
+import java.util.List;
+
 import racing.datastructure.Knoten;
 import racing.datastructure.Listenelement;
 import racing.view.Oberflaeche;
@@ -28,6 +30,7 @@ public class Spiel implements Runnable {
     private long countdownStartZeit = -1;
 
     private static final int CHECKPOINT_ANZAHL = 8;
+    private static final int NITRO_ANZAHL = 4;
     private static final double STRECKEN_TOLERANZ = 38.0;
     private static final double START_ABSTAND = 45.0;
     private static final long COUNTDOWN_DAUER_MS = 3000;
@@ -75,6 +78,7 @@ public class Spiel implements Runnable {
         x = 480; y = 520;
         while (map.distanceToTrack(x, y) < 120) y -= 10;
         level.platziereGegenstand(new Baum(), x, y);
+        platziereNitros();
 
         // Spielschleife
         while (laeuft) {
@@ -97,6 +101,18 @@ public class Spiel implements Runnable {
                         Auto a = s.gibAuto();
                         if (b.kollidiertMit((int) a.gibX(), (int) a.gibY())) {
                             a.kollision();
+                        }
+                    }
+                } else if (g instanceof Nitro) {
+                    Nitro nitro = (Nitro) g;
+                    for (Spieler s : spieler) {
+                        Auto a = s.gibAuto();
+                        if (
+                            nitro.kollidiertMit((int) a.gibX(), (int) a.gibY()) &&
+                            a.aktiviereNitro()
+                        ) {
+                            level.entferneGegenstand(nitro);
+                            break;
                         }
                     }
                 }
@@ -189,7 +205,11 @@ public class Spiel implements Runnable {
             while (!el.istAbschluss()) {
                 Gegenstand g = (Gegenstand) ((Knoten) el).gebeDaten();
                 int[] pos = g.gebePosition();
-                this.oberflaeche.baumZeichnen(pos[0], pos[1]);
+                if (g instanceof Baum) {
+                    this.oberflaeche.baumZeichnen(pos[0], pos[1]);
+                } else if (g instanceof Nitro) {
+                    this.oberflaeche.nitroZeichnen(pos[0], pos[1]);
+                }
                 el = ((Knoten) el).gebeNachfolger();
             }
 
@@ -208,6 +228,7 @@ public class Spiel implements Runnable {
                     ? 0
                     : System.currentTimeMillis() - lapStartZeit;
             int kollisionen = spieler[0].gibAuto().gibKollisionen();
+            Auto hudAuto = spieler[0].gibAuto();
             this.oberflaeche.hudZeichnen(
                 lapZaehler,
                 aktuelleZeit,
@@ -216,7 +237,9 @@ public class Spiel implements Runnable {
                 naechsterCheckpoint,
                 checkpoints.length,
                 kollisionen,
-                letzterScore
+                letzterScore,
+                hudAuto.gibNitroStatus(),
+                hudAuto.gibNitroFortschritt()
             );
             String countdownText = gibCountdownText();
             if (countdownText != null) {
@@ -251,6 +274,20 @@ public class Spiel implements Runnable {
         if (vergangen < COUNTDOWN_DAUER_MS) return "1";
         if (vergangen < COUNTDOWN_DAUER_MS + GO_ANZEIGE_DAUER_MS) return "GO";
         return null;
+    }
+
+    private void platziereNitros() {
+        List<int[]> centerline = level.gibMap().getCenterline();
+        int n = centerline.size();
+        for (int i = 0; i < NITRO_ANZAHL; i++) {
+            int idx = ((i + 1) * n) / (NITRO_ANZAHL + 1);
+            int[] p = centerline.get(idx);
+            level.platziereGegenstand(
+                new Nitro(),
+                p[0] - Nitro.BREITE / 2,
+                p[1] - Nitro.HOEHE / 2
+            );
+        }
     }
 
     public Spieler[] gibSpieler() {
