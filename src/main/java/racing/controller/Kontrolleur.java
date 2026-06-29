@@ -38,9 +38,12 @@ public class Kontrolleur implements Runnable {
         if (!spiel.istRennenGestartet()) return;
 
         Set<KeyCode> tasten = oberflaeche.gibGedrueckteTasten();
+        boolean nitroGedrueckt = tasten.contains(KeyCode.N) ||
+            tasten.contains(KeyCode.B);
 
         for (Spieler s : spiel.gibSpieler()) {
             Auto auto = s.gibAuto();
+            auto.setzeNitroTaste(nitroGedrueckt);
             // aktuell wird jedes Auto angesteuert. muss man später für Mehrspieler anpassen
             if (tasten.contains(KeyCode.UP)    || tasten.contains(KeyCode.W)) auto.gibGas();
             if (tasten.contains(KeyCode.DOWN)  || tasten.contains(KeyCode.S)) auto.bremse();

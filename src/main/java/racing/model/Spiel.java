@@ -109,7 +109,7 @@ public class Spiel implements Runnable {
                         Auto a = s.gibAuto();
                         if (
                             nitro.kollidiertMit((int) a.gibX(), (int) a.gibY()) &&
-                            a.aktiviereNitro()
+                            a.sammleNitro()
                         ) {
                             level.entferneGegenstand(nitro);
                             break;

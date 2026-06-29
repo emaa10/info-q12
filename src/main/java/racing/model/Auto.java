@@ -26,13 +26,13 @@ public class Auto implements Datenelement {
     private boolean gasAktiv = false;
     private int kollisionsAnzahl = 0;
     private int kollisionsCooldown = 0;
-    private int nitroTicks = 0;
-    private int nitroCooldownTicks = 0;
+    private int nitroLadungTicks = 0;
+    private boolean nitroTasteGedrueckt = false;
 
-    private static final int NITRO_DAUER_TICKS = 180;
-    private static final int NITRO_COOLDOWN_TICKS = 360;
+    private static final int NITRO_MAX_TICKS = 360;
+    private static final int NITRO_PICKUP_TICKS = 180;
     private static final double NITRO_BESCHLEUNIGUNG = 2.2;
-    private static final double NITRO_IMPULS = 3.0;
+    private static final double NITRO_SCHUB = 0.08;
 
     public Auto(double x, double y, double winkel) {
         this.x = x;
@@ -55,11 +55,11 @@ public class Auto implements Datenelement {
         prevX = x;
         prevY = y;
         if (kollisionsCooldown > 0) kollisionsCooldown--;
-        if (nitroTicks > 0) {
-            nitroTicks--;
-            if (nitroTicks == 0) nitroCooldownTicks = NITRO_COOLDOWN_TICKS;
-        } else if (nitroCooldownTicks > 0) {
-            nitroCooldownTicks--;
+        if (nitroAktiv()) {
+            double rad = Math.toRadians(winkel);
+            a_x += Math.cos(rad) * NITRO_SCHUB;
+            a_y += Math.sin(rad) * NITRO_SCHUB;
+            nitroLadungTicks--;
         }
         x += v_x;
         y += v_y;
@@ -186,31 +186,30 @@ public class Auto implements Datenelement {
         kollisionsAnzahl = 0;
     }
 
-    public boolean aktiviereNitro() {
-        if (nitroAktiv() || nitroCooldownTicks > 0) return false;
-
-        double rad = Math.toRadians(winkel);
-        v_x += Math.cos(rad) * NITRO_IMPULS;
-        v_y += Math.sin(rad) * NITRO_IMPULS;
-        nitroTicks = NITRO_DAUER_TICKS;
+    public boolean sammleNitro() {
+        if (nitroLadungTicks >= NITRO_MAX_TICKS) return false;
+        nitroLadungTicks = Math.min(
+            NITRO_MAX_TICKS,
+            nitroLadungTicks + NITRO_PICKUP_TICKS
+        );
         return true;
     }
 
+    public void setzeNitroTaste(boolean gedrueckt) {
+        nitroTasteGedrueckt = gedrueckt;
+    }
+
     public boolean nitroAktiv() {
-        return nitroTicks > 0;
+        return nitroTasteGedrueckt && nitroLadungTicks > 0;
     }
 
     public double gibNitroFortschritt() {
-        if (nitroTicks > 0) return (double) nitroTicks / NITRO_DAUER_TICKS;
-        if (nitroCooldownTicks > 0) {
-            return 1.0 - (double) nitroCooldownTicks / NITRO_COOLDOWN_TICKS;
-        }
-        return 1.0;
+        return (double) nitroLadungTicks / NITRO_MAX_TICKS;
     }
 
     public String gibNitroStatus() {
-        if (nitroTicks > 0) return "BOOST";
-        if (nitroCooldownTicks > 0) return "COOLDOWN";
+        if (nitroAktiv()) return "BOOST";
+        if (nitroLadungTicks == 0) return "LEER";
         return "BEREIT";
     }
 
