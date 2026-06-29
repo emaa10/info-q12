@@ -2,7 +2,6 @@ package racing.view;
 
 import java.util.HashSet;
 import java.util.Set;
-
 import javafx.application.Platform;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -19,7 +18,7 @@ import javafx.scene.text.FontWeight;
 public class Oberflaeche {
 
     private static final int BREITE = 960;
-    private static final int HOEHE  = 600;
+    private static final int HOEHE = 600;
 
     private final Pane wurzel;
     private final Canvas leinwand;
@@ -33,13 +32,19 @@ public class Oberflaeche {
 
     public Oberflaeche() {
         this.leinwand = new Canvas(BREITE, HOEHE);
-        this.gc       = leinwand.getGraphicsContext2D();
-        this.wurzel   = new Pane(leinwand);
+        this.gc = leinwand.getGraphicsContext2D();
+        this.wurzel = new Pane(leinwand);
         this.wurzel.setStyle("-fx-background-color: white;");
-        this.baumBild = new Image(getClass().getResourceAsStream("/images/tree.png"));
-        this.autoBild = new Image(getClass().getResourceAsStream("/images/auto_m2.png"));
-        this.grasBild = new Image(getClass().getResourceAsStream("/images/grass.jpg"));
-        this.mapView  = new MapView(this.gc);
+        this.baumBild = new Image(
+            getClass().getResourceAsStream("/images/tree.png")
+        );
+        this.autoBild = new Image(
+            getClass().getResourceAsStream("/images/auto_m2.png")
+        );
+        this.grasBild = new Image(
+            getClass().getResourceAsStream("/images/grass.jpg")
+        );
+        this.mapView = new MapView(this.gc);
     }
 
     public Parent gibWurzel() {
@@ -52,7 +57,7 @@ public class Oberflaeche {
 
     // Muss nach Scene-Erstellung aufgerufen werden
     public void registriereEingabe(Scene szene) {
-        szene.setOnKeyPressed(e  -> gedrueckteTasten.add(e.getCode()));
+        szene.setOnKeyPressed(e -> gedrueckteTasten.add(e.getCode()));
         szene.setOnKeyReleased(e -> gedrueckteTasten.remove(e.getCode()));
     }
 
@@ -121,8 +126,10 @@ public class Oberflaeche {
     }
 
     public void streckeZeichnen(
-        int startX, int startY,
-        int[] xKoord, int[] yKoord
+        int startX,
+        int startY,
+        int[] xKoord,
+        int[] yKoord
     ) {
         Platform.runLater(() -> {
             gc.beginPath();
@@ -138,9 +145,16 @@ public class Oberflaeche {
 
     // zeichnet das hud oben rechts
     // wenn aufStrecke false ist, wird eine rote warnung angezeigt
-    public void hudZeichnen(int runde, long aktuelleZeitMs, long besteRundeMs,
-                             boolean aufStrecke, int checkpointFortschritt, int totalCheckpoints,
-                             int kollisionen, int letzterScore) {
+    public void hudZeichnen(
+        int runde,
+        long aktuelleZeitMs,
+        long besteRundeMs,
+        boolean aufStrecke,
+        int checkpointFortschritt,
+        int totalCheckpoints,
+        int kollisionen,
+        int letzterScore
+    ) {
         Platform.runLater(() -> {
             // warnung wenn man von der strecke fährt
             if (!aufStrecke) {
@@ -148,7 +162,11 @@ public class Oberflaeche {
                 gc.fillRoundRect(BREITE / 2.0 - 160, 12, 320, 34, 8, 8);
                 gc.setFill(Color.WHITE);
                 gc.setFont(Font.font("Monospace", FontWeight.BOLD, 14));
-                gc.fillText("Nicht mehr auf der Strecke!", BREITE / 2.0 - 140, 35);
+                gc.fillText(
+                    "Nicht mehr auf der Strecke!",
+                    BREITE / 2.0 - 140,
+                    35
+                );
             }
 
             // hud panel
@@ -159,26 +177,78 @@ public class Oberflaeche {
 
             gc.setFill(Color.WHITE);
             gc.setFont(Font.font("Monospace", FontWeight.BOLD, 13));
-            gc.fillText("Runde:   " + (runde == 0 ? "-" : runde), px + 12, py + 22);
-            gc.fillText("Zeit:    " + formatZeit(aktuelleZeitMs), px + 12, py + 44);
-            gc.fillText("Beste:   " + (besteRundeMs < 0 ? "--:--.---" : formatZeit(besteRundeMs)), px + 12, py + 66);
+            gc.fillText(
+                "Runde:   " + (runde == 0 ? "-" : runde),
+                px + 12,
+                py + 22
+            );
+            gc.fillText(
+                "Zeit:    " + formatZeit(aktuelleZeitMs),
+                px + 12,
+                py + 44
+            );
+            gc.fillText(
+                "Beste:   " +
+                    (besteRundeMs < 0 ? "--:--.---" : formatZeit(besteRundeMs)),
+                px + 12,
+                py + 66
+            );
             gc.fillText("Crashes: " + kollisionen, px + 12, py + 88);
-            gc.fillText("Score:   " + (letzterScore == 0 ? "-" : letzterScore), px + 12, py + 110);
+            gc.fillText(
+                "Score:   " + (letzterScore == 0 ? "-" : letzterScore),
+                px + 12,
+                py + 110
+            );
 
             // checkpoint fortschrittsbalken
             gc.setFill(Color.web("#ffffff", 0.25));
             gc.fillRoundRect(px + 12, py + 116, 194, 8, 4, 4);
             if (totalCheckpoints > 0) {
-                double balken = 194.0 * checkpointFortschritt / totalCheckpoints;
-                gc.setFill(checkpointFortschritt == totalCheckpoints ? Color.GREEN : Color.YELLOW);
+                double balken =
+                    (194.0 * checkpointFortschritt) / totalCheckpoints;
+                gc.setFill(
+                    checkpointFortschritt == totalCheckpoints
+                        ? Color.GREEN
+                        : Color.YELLOW
+                );
                 gc.fillRoundRect(px + 12, py + 116, balken, 8, 4, 4);
             }
         });
     }
 
+    public void countdownZeichnen(String text) {
+        Platform.runLater(() -> {
+            gc.save();
+            gc.setFill(Color.rgb(0, 0, 0, 0.28));
+            gc.fillRect(0, 0, BREITE, HOEHE);
+
+            gc.setFill(Color.WHITE);
+            gc.setFont(
+                Font.font(
+                    "Monospace",
+                    FontWeight.EXTRA_BOLD,
+                    text.equals("GO") ? 86 : 110
+                )
+            );
+            double textBreite = gc.getFont().getSize() * text.length() * 0.62;
+            gc.fillText(
+                text,
+                BREITE / 2.0 - textBreite / 2.0,
+                HOEHE / 2.0 + 34
+            );
+            gc.restore();
+        });
+    }
+
     // zeichnet eine checkpoint-linie quer über die strecke
     // aktiv = nächster checkpoint (gelb), sonst grau
-    public void checkpointZeichnen(double ax, double ay, double bx, double by, boolean aktiv) {
+    public void checkpointZeichnen(
+        double ax,
+        double ay,
+        double bx,
+        double by,
+        boolean aktiv
+    ) {
         Platform.runLater(() -> {
             gc.save();
             if (aktiv) {
@@ -196,15 +266,19 @@ public class Oberflaeche {
     private String formatZeit(long ms) {
         long minutes = ms / 60000;
         long seconds = (ms % 60000) / 1000;
-        long millis  = ms % 1000;
+        long millis = ms % 1000;
         return String.format("%d:%02d.%03d", minutes, seconds, millis);
     }
 
     public void streckeZeichnenBezier(
-        int startX, int startY,
-        int[] xKoord, int[] yKoord,
-        double[] xC1Koord, double[] yC1Koord,
-        double[] xC2Koord, double[] yC2Koord
+        int startX,
+        int startY,
+        int[] xKoord,
+        int[] yKoord,
+        double[] xC1Koord,
+        double[] yC1Koord,
+        double[] xC2Koord,
+        double[] yC2Koord
     ) {
         Platform.runLater(() -> {
             gc.beginPath();
@@ -212,9 +286,12 @@ public class Oberflaeche {
             gc.moveTo(startX, startY);
             for (int k = 0; k < xKoord.length; k++) {
                 gc.bezierCurveTo(
-                    xC1Koord[k], yC1Koord[k] - 100,
-                    xC2Koord[k], yC2Koord[k] + 100,
-                    xKoord[k],   yKoord[k]
+                    xC1Koord[k],
+                    yC1Koord[k] - 100,
+                    xC2Koord[k],
+                    yC2Koord[k] + 100,
+                    xKoord[k],
+                    yKoord[k]
                 );
             }
             gc.lineTo(startX, startY);

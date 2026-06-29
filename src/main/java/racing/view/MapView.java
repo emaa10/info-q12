@@ -22,6 +22,10 @@ public class MapView {
     }
 
     public void drawTrack(List<int[]> centerline, int width) {
+        drawTrack(centerline, width, findStartFinishIndex(centerline));
+    }
+
+    public void drawTrack(List<int[]> centerline, int width, int sfIndex) {
         Platform.runLater(() -> {
             int n = centerline.size();
             int radius = width / 2;
@@ -140,26 +144,10 @@ public class MapView {
                 }
             }
 
-            double straightThreshold = 0.25;
-            int bestStart = 0,
-                bestLen = 0,
-                curStart = 0,
-                curLen = 0;
-            for (int i = 0; i < 2 * n; i++) {
-                if (angles[i % n] < straightThreshold) {
-                    if (curLen == 0) curStart = i;
-                    if (++curLen > bestLen && curLen <= n) {
-                        bestLen = curLen;
-                        bestStart = curStart;
-                    }
-                } else {
-                    curLen = 0;
-                }
-            }
-            int sfIndex = bestLen > 10 ? (bestStart + bestLen / 2) % n : 0;
+            int startFinishIndex = ((sfIndex % n) + n) % n;
 
             boolean[] corners = detectCorners(centerline, n);
-            for (int d = -20; d <= 20; d++) corners[(d + sfIndex + n) % n] =
+            for (int d = -20; d <= 20; d++) corners[(d + startFinishIndex + n) % n] =
                 false;
             for (int i = 0; i < n; i++) {
                 int next = (i + 1) % n;
@@ -192,13 +180,58 @@ public class MapView {
             gc.restore();
 
             placeStartFinishLine(
-                centerline.get(sfIndex)[0],
-                centerline.get(sfIndex)[1],
-                normalX[sfIndex],
-                normalY[sfIndex],
+                centerline.get(startFinishIndex)[0],
+                centerline.get(startFinishIndex)[1],
+                normalX[startFinishIndex],
+                normalY[startFinishIndex],
                 width
             );
         });
+    }
+
+    public static int findStartFinishIndex(List<int[]> centerline) {
+        int n = centerline.size();
+        double[] angles = new double[n];
+        for (int i = 0; i < n; i++) {
+            int prev = (i - 10 + n) % n;
+            int next = (i + 10) % n;
+            double t1x = centerline.get(i)[0] - centerline.get(prev)[0];
+            double t1y = centerline.get(i)[1] - centerline.get(prev)[1];
+            double t2x = centerline.get(next)[0] - centerline.get(i)[0];
+            double t2y = centerline.get(next)[1] - centerline.get(i)[1];
+            double l1 = Math.sqrt(t1x * t1x + t1y * t1y);
+            double l2 = Math.sqrt(t2x * t2x + t2y * t2y);
+            if (l1 > 0) {
+                t1x /= l1;
+                t1y /= l1;
+            }
+            if (l2 > 0) {
+                t2x /= l2;
+                t2y /= l2;
+            }
+            angles[i] = Math.acos(
+                Math.max(-1.0, Math.min(1.0, t1x * t2x + t1y * t2y))
+            );
+        }
+
+        double straightThreshold = 0.25;
+        int bestStart = 0;
+        int bestLen = 0;
+        int curStart = 0;
+        int curLen = 0;
+        for (int i = 0; i < 2 * n; i++) {
+            if (angles[i % n] < straightThreshold) {
+                if (curLen == 0) curStart = i;
+                curLen++;
+                if (curLen > bestLen && curLen <= n) {
+                    bestLen = curLen;
+                    bestStart = curStart;
+                }
+            } else {
+                curLen = 0;
+            }
+        }
+        return bestLen > 10 ? (bestStart + bestLen / 2) % n : 0;
     }
 
     private void placeStartFinishLine(

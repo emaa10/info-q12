@@ -12,6 +12,7 @@ import java.util.List;
 import racing.model.util.LCG;
 import racing.model.util.geometry.ConvexHull;
 import racing.model.util.geometry.Point;
+import racing.view.MapView;
 
 public class Map {
 
@@ -28,12 +29,13 @@ public class Map {
     private static final int SPLINE_POINTS = 1000;
     static final int TRACK_WIDTH = 60;
 
-    // LCG default parameters: modulus = 2^16 + 1 = 65537
+    // 2^16 + 1 = 65537
     private static final int LCG_MODULUS = (1 << 16) + 1;
 
     private racing.view.MapView view;
     private Point[] trackPoints;
     private List<int[]> centerline;
+    private int startFinishIndex;
     private boolean[] onTrackGrid;
     private int[] rngPool;
     private int rngIdx;
@@ -62,8 +64,13 @@ public class Map {
         if (this.centerline == null) this.centerline = smoothTrack(
             this.trackPoints
         );
+        this.startFinishIndex = MapView.findStartFinishIndex(this.centerline);
         precomputeOnTrackGrid();
-        this.view.drawTrack(this.centerline, TRACK_WIDTH);
+        this.view.drawTrack(
+            this.centerline,
+            TRACK_WIDTH,
+            this.startFinishIndex
+        );
     }
 
     private double nextDouble() {
@@ -426,14 +433,19 @@ public class Map {
     }
 
     public void draw() {
-        this.view.drawTrack(this.centerline, TRACK_WIDTH);
+        this.view.drawTrack(
+            this.centerline,
+            TRACK_WIDTH,
+            this.startFinishIndex
+        );
     }
 
-    // gibt die fahrtrichtung der strecke am startpunkt zurück
-    public double[] getStartLinieTangent() {
+    private double[] getTangentAt(int idx) {
         int n = centerline.size();
-        double tx = centerline.get(1)[0] - centerline.get(n - 1)[0];
-        double ty = centerline.get(1)[1] - centerline.get(n - 1)[1];
+        int prev = (idx - 1 + n) % n;
+        int next = (idx + 1) % n;
+        double tx = centerline.get(next)[0] - centerline.get(prev)[0];
+        double ty = centerline.get(next)[1] - centerline.get(prev)[1];
         double len = Math.sqrt(tx * tx + ty * ty);
         if (len > 0) {
             tx /= len;
@@ -442,13 +454,22 @@ public class Map {
         return new double[] { tx, ty };
     }
 
+    public double[] getStartLinieTangent() {
+        return getTangentAt(startFinishIndex);
+    }
+
+    public double[] getStartPunkt() {
+        int[] c = centerline.get(startFinishIndex);
+        return new double[] { c[0], c[1] };
+    }
+
     // linker endpunkt der startlinie
     public double[] getStartLinieA() {
         double[] t = getStartLinieTangent();
-        int[] c = centerline.get(0);
+        int[] c = centerline.get(startFinishIndex);
         // normal ist senkrecht zur tangente
         return new double[] {
-            c[0] - ((-t[1]) * TRACK_WIDTH) / 2.0,
+            c[0] - (-t[1] * TRACK_WIDTH) / 2.0,
             c[1] - (t[0] * TRACK_WIDTH) / 2.0,
         };
     }
@@ -456,9 +477,9 @@ public class Map {
     // rechter endpunkt der startlinie
     public double[] getStartLinieB() {
         double[] t = getStartLinieTangent();
-        int[] c = centerline.get(0);
+        int[] c = centerline.get(startFinishIndex);
         return new double[] {
-            c[0] + ((-t[1]) * TRACK_WIDTH) / 2.0,
+            c[0] + (-t[1] * TRACK_WIDTH) / 2.0,
             c[1] + (t[0] * TRACK_WIDTH) / 2.0,
         };
     }
@@ -469,16 +490,10 @@ public class Map {
         int n = centerline.size();
         double[][] result = new double[anzahl][];
         for (int i = 0; i < anzahl; i++) {
-            int idx = ((i + 1) * n) / (anzahl + 1);
-            int prev = (idx - 1 + n) % n;
-            int next = (idx + 1) % n;
-            double tx = centerline.get(next)[0] - centerline.get(prev)[0];
-            double ty = centerline.get(next)[1] - centerline.get(prev)[1];
-            double len = Math.sqrt(tx * tx + ty * ty);
-            if (len > 0) {
-                tx /= len;
-                ty /= len;
-            }
+            int idx = (startFinishIndex + ((i + 1) * n) / (anzahl + 1)) % n;
+            double[] t = getTangentAt(idx);
+            double tx = t[0];
+            double ty = t[1];
             double nx = -ty;
             double ny = tx;
             double cx = centerline.get(idx)[0];

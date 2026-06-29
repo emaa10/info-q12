@@ -35,6 +35,8 @@ public class Kontrolleur implements Runnable {
     }
 
     public void pruefeEingabe() {
+        if (!spiel.istRennenGestartet()) return;
+
         Set<KeyCode> tasten = oberflaeche.gibGedrueckteTasten();
 
         for (Spieler s : spiel.gibSpieler()) {

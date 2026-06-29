@@ -1,7 +1,5 @@
 package racing.model;
 
-import java.util.List;
-
 import racing.datastructure.Knoten;
 import racing.datastructure.Listenelement;
 import racing.view.Oberflaeche;
@@ -16,21 +14,24 @@ public class Spiel implements Runnable {
 
     private volatile boolean laeuft;
 
-    // Lap-Timer & Checkpoints
     private double[] startLinieA;
     private double[] startLinieB;
     private double[] startLinieTangent;
     private double[][] checkpoints;
-    private int  naechsterCheckpoint = 0;
+    private int naechsterCheckpoint = 0;
     private long lapStartZeit = -1;
-    private int  lapZaehler   = 0;
-    private long besteRunde   = -1;
-    private int  kreuzungsCooldown = 300;
+    private int lapZaehler = 0;
+    private long besteRunde = -1;
+    private int kreuzungsCooldown = 300;
     private boolean aufStrecke = true;
     private int letzterScore = 0;
+    private long countdownStartZeit = -1;
 
-    private static final int  CHECKPOINT_ANZAHL = 8;
+    private static final int CHECKPOINT_ANZAHL = 8;
     private static final double STRECKEN_TOLERANZ = 38.0;
+    private static final double START_ABSTAND = 45.0;
+    private static final long COUNTDOWN_DAUER_MS = 3000;
+    private static final long GO_ANZEIGE_DAUER_MS = 800;
 
     public Spiel(Oberflaeche oberflaeche) {
         this.oberflaeche = oberflaeche;
@@ -39,24 +40,26 @@ public class Spiel implements Runnable {
         this.datenbank.verbinde();
         this.level = new Level(new Map(this.oberflaeche.getMapView()));
 
-        // Spieler mit Auto am ersten Centerline-Punkt (Start-Ziel-Linie) platzieren
-        List<int[]> centerline = this.level.gibMap().getCenterline();
-        int[] startPt = centerline.get(0);
-        int[] nextPt  = centerline.get(1);
-        double startAngle = Math.toDegrees(Math.atan2(nextPt[1] - startPt[1], nextPt[0] - startPt[0]));
-        Auto auto = new Auto(startPt[0], startPt[1], startAngle);
-        this.spieler = new Spieler[] { new Spieler("Spieler 1", auto) };
-
         Map map = this.level.gibMap();
-        this.startLinieA       = map.getStartLinieA();
-        this.startLinieB       = map.getStartLinieB();
+        this.startLinieA = map.getStartLinieA();
+        this.startLinieB = map.getStartLinieB();
         this.startLinieTangent = map.getStartLinieTangent();
-        this.checkpoints       = map.getCheckpoints(CHECKPOINT_ANZAHL);
+        this.checkpoints = map.getCheckpoints(CHECKPOINT_ANZAHL);
+
+        double[] startPt = map.getStartPunkt();
+        double startAngle = Math.toDegrees(
+            Math.atan2(startLinieTangent[1], startLinieTangent[0])
+        );
+        double autoX = startPt[0] - startLinieTangent[0] * START_ABSTAND;
+        double autoY = startPt[1] - startLinieTangent[1] * START_ABSTAND;
+        Auto auto = new Auto(autoX, autoY, startAngle);
+        this.spieler = new Spieler[] { new Spieler("Spieler 1", auto) };
     }
 
     @Override
     public void run() {
         laeuft = true;
+        countdownStartZeit = System.currentTimeMillis();
         spieleKreis();
     }
 
@@ -68,11 +71,12 @@ public class Spiel implements Runnable {
 
         // Spielschleife
         while (laeuft) {
-            // Physik aller Autos aktualisieren
             for (Spieler s : spieler) {
                 Auto a = s.gibAuto();
                 a.itr();
-                double dist = level.gibMap().distanceToTrack(a.gibX(), a.gibY());
+                double dist = level
+                    .gibMap()
+                    .distanceToTrack(a.gibX(), a.gibY());
                 a.applyOffTrackFriction(dist);
                 a.begrenze(960, 600);
             }
@@ -94,12 +98,23 @@ public class Spiel implements Runnable {
 
             for (Spieler s : spieler) {
                 Auto a = s.gibAuto();
-                aufStrecke = level.gibMap().istNahAnStrecke(a.gibX(), a.gibY(), STRECKEN_TOLERANZ);
+                aufStrecke = level
+                    .gibMap()
+                    .istNahAnStrecke(a.gibX(), a.gibY(), STRECKEN_TOLERANZ);
 
-                // nächsten checkpoint prüfen (keine richtungsprüfung nötig)
                 if (naechsterCheckpoint < checkpoints.length) {
                     double[] cp = checkpoints[naechsterCheckpoint];
-                    if (a.prüfeLapCrossing(cp[0], cp[1], cp[2], cp[3], cp[4], cp[5], false)) {
+                    if (
+                        a.prüfeLapCrossing(
+                            cp[0],
+                            cp[1],
+                            cp[2],
+                            cp[3],
+                            cp[4],
+                            cp[5],
+                            false
+                        )
+                    ) {
                         naechsterCheckpoint++;
                     }
                 }
@@ -110,20 +125,33 @@ public class Spiel implements Runnable {
             } else {
                 for (Spieler s : spieler) {
                     Auto a = s.gibAuto();
-                    if (a.prüfeLapCrossing(
-                            startLinieA[0], startLinieA[1],
-                            startLinieB[0], startLinieB[1],
-                            startLinieTangent[0], startLinieTangent[1], true)) {
+                    if (
+                        a.prüfeLapCrossing(
+                            startLinieA[0],
+                            startLinieA[1],
+                            startLinieB[0],
+                            startLinieB[1],
+                            startLinieTangent[0],
+                            startLinieTangent[1],
+                            true
+                        )
+                    ) {
                         long jetzt = System.currentTimeMillis();
                         if (lapStartZeit < 0) {
                             lapStartZeit = jetzt;
                         } else if (naechsterCheckpoint == checkpoints.length) {
-                            // gültige runde: alle checkpoints passiert
                             long lapZeit = jetzt - lapStartZeit;
                             lapZaehler++;
-                            if (besteRunde < 0 || lapZeit < besteRunde) besteRunde = lapZeit;
+                            if (
+                                besteRunde < 0 || lapZeit < besteRunde
+                            ) besteRunde = lapZeit;
                             int kollisionen = a.gibKollisionen();
-                            letzterScore = Math.max(0, 10000 - (int)(lapZeit / 100) - kollisionen * 500);
+                            letzterScore = Math.max(
+                                0,
+                                10000 -
+                                    (int) (lapZeit / 100) -
+                                    kollisionen * 500
+                            );
                             a.resetKollisionen();
                             lapStartZeit = jetzt;
                         }
@@ -141,7 +169,13 @@ public class Spiel implements Runnable {
 
             for (int i = naechsterCheckpoint; i < checkpoints.length; i++) {
                 double[] cp = checkpoints[i];
-                this.oberflaeche.checkpointZeichnen(cp[0], cp[1], cp[2], cp[3], i == naechsterCheckpoint);
+                this.oberflaeche.checkpointZeichnen(
+                    cp[0],
+                    cp[1],
+                    cp[2],
+                    cp[3],
+                    i == naechsterCheckpoint
+                );
             }
 
             Listenelement el = level.gibGegenstaende().gibAnfang();
@@ -155,13 +189,32 @@ public class Spiel implements Runnable {
             // Autos zeichnen (über alles andere)
             for (Spieler s : spieler) {
                 Auto a = s.gibAuto();
-                this.oberflaeche.autoZeichnen(a.gibX(), a.gibY(), a.gibWinkelDouble());
+                this.oberflaeche.autoZeichnen(
+                    a.gibX(),
+                    a.gibY(),
+                    a.gibWinkelDouble()
+                );
             }
 
-            long aktuelleZeit = lapStartZeit < 0 ? 0 : System.currentTimeMillis() - lapStartZeit;
+            long aktuelleZeit =
+                lapStartZeit < 0
+                    ? 0
+                    : System.currentTimeMillis() - lapStartZeit;
             int kollisionen = spieler[0].gibAuto().gibKollisionen();
-            this.oberflaeche.hudZeichnen(lapZaehler, aktuelleZeit, besteRunde,
-                    aufStrecke, naechsterCheckpoint, checkpoints.length, kollisionen, letzterScore);
+            this.oberflaeche.hudZeichnen(
+                lapZaehler,
+                aktuelleZeit,
+                besteRunde,
+                aufStrecke,
+                naechsterCheckpoint,
+                checkpoints.length,
+                kollisionen,
+                letzterScore
+            );
+            String countdownText = gibCountdownText();
+            if (countdownText != null) {
+                this.oberflaeche.countdownZeichnen(countdownText);
+            }
 
             try {
                 Thread.sleep(16); // ca. 60 FPS
@@ -175,6 +228,22 @@ public class Spiel implements Runnable {
     public void stoppe() {
         laeuft = false;
         datenbank.trenneVerbindung();
+    }
+
+    public boolean istRennenGestartet() {
+        return countdownStartZeit >= 0 &&
+            System.currentTimeMillis() - countdownStartZeit >= COUNTDOWN_DAUER_MS;
+    }
+
+    private String gibCountdownText() {
+        if (countdownStartZeit < 0) return null;
+
+        long vergangen = System.currentTimeMillis() - countdownStartZeit;
+        if (vergangen < 1000) return "3";
+        if (vergangen < 2000) return "2";
+        if (vergangen < COUNTDOWN_DAUER_MS) return "1";
+        if (vergangen < COUNTDOWN_DAUER_MS + GO_ANZEIGE_DAUER_MS) return "GO";
+        return null;
     }
 
     public Spieler[] gibSpieler() {
