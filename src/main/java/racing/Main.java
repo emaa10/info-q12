@@ -14,8 +14,10 @@ public class Main extends Application {
 
     private Spiel spiel;
     private Kontrolleur kontrolleur;
+    private AudioWiedergabe audio;
     private Thread gameThread;
     private Thread controllerThread;
+    private Thread audioThread;
 
     @Override
     public void start(Stage buehne) {
@@ -38,16 +40,21 @@ public class Main extends Application {
 
         gameThread      = new Thread(spiel,       "GameThread");
         controllerThread = new Thread(kontrolleur, "ControllerThread");
+        audio           = new AudioWiedergabe("/audio/Info-Soundtrack1-06-12-2026.wav");
+        audioThread      = new Thread(audio, "AudioThread");
         gameThread.setDaemon(true);
         controllerThread.setDaemon(true);
+        audioThread.setDaemon(true);
         gameThread.start();
         controllerThread.start();
+        audioThread.start();
     }
 
     @Override
     public void stop() {
         if (spiel != null)       spiel.stoppe();
         if (kontrolleur != null) kontrolleur.stoppe();
+        if (audio != null)       audio.stoppe();
     }
 
     public static void main(String[] args) {
