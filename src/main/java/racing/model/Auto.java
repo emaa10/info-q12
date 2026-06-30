@@ -4,6 +4,7 @@ import racing.datastructure.Datenelement;
 
 public class Auto implements Datenelement {
 
+    private double maxSpeed;
     private double x;
     private double y;
     private double prevX;
@@ -35,6 +36,7 @@ public class Auto implements Datenelement {
     private static final double NITRO_SCHUB = 0.08;
 
     public Auto(double x, double y, double winkel) {
+        this.maxSpeed = 2.5;
         this.x = x;
         this.y = y;
         this.prevX = x;
@@ -61,6 +63,9 @@ public class Auto implements Datenelement {
             a_y += Math.sin(rad) * NITRO_SCHUB;
             nitroLadungTicks--;
         }
+
+        if (v_x > maxSpeed) v_x = maxSpeed;
+        if (v_y > maxSpeed) v_y = maxSpeed;
         x += v_x;
         y += v_y;
 
