@@ -14,6 +14,11 @@ import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import javafx.geometry.Pos;
+import javafx.scene.layout.VBox;
+import javafx.scene.text.Text;
+import javafx.scene.control.Button;
+
 
 // view-teil im MVC
 public class Oberflaeche {
@@ -223,7 +228,7 @@ public class Oberflaeche {
         });
     }
 }
-public class Hauptmenü
+public class Hauptmenue
 {
     private VBox wurtzel;
     public Hauptmenü(Runnable spielstarten)
@@ -233,7 +238,14 @@ public class Hauptmenü
         Button spielenB = new Button("Spielen");
         Button optionenB = new Button("Optionen");
         Button beendenB = new Button("Beenden");
-        spielenB.setOnAction(e -> spielen.run());
+        spielenB.setPreWidth(220);
+        optionenB.setPreWidth(220);
+        beendenB.setPreWidth(220);
+        spielenB.setOnAction(e -> spielstarten.run());
         beendenB.setOnAction(e -> Platform.exit());
-        //Fehlt: Optionen; Hintergrundbild;...
+        optionenB.setOnAction(e -> { };
+        wurzel=new VBox(20);
+        wurzel.getChildren().addAll(titel,spielenB,optionenB,beendenB);
+        wurzel.setAlignment(Pos.CENTER);
+        // es fehlt ein Hintergrundbild 
     }
