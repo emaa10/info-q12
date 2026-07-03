@@ -13,6 +13,11 @@ import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import javafx.geometry.Pos;
+import javafx.scene.layout.VBox;
+import javafx.scene.text.Text;
+import javafx.scene.control.Button;
+
 
 // view-teil im MVC
 public class Oberflaeche {
@@ -322,3 +327,24 @@ public class Oberflaeche {
         });
     }
 }
+public class Hauptmenue
+{
+    private VBox wurtzel;
+    public Hauptmenü(Runnable spielstarten)
+    {
+        Text titel = new Text("RACING GAME");
+        titel.setFont(Font.font("Arial", FontWeight.Bold, 40);
+        Button spielenB = new Button("Spielen");
+        Button optionenB = new Button("Optionen");
+        Button beendenB = new Button("Beenden");
+        spielenB.setPreWidth(220);
+        optionenB.setPreWidth(220);
+        beendenB.setPreWidth(220);
+        spielenB.setOnAction(e -> spielstarten.run());
+        beendenB.setOnAction(e -> Platform.exit());
+        optionenB.setOnAction(e -> { };
+        wurzel=new VBox(20);
+        wurzel.getChildren().addAll(titel,spielenB,optionenB,beendenB);
+        wurzel.setAlignment(Pos.CENTER);
+        // es fehlt ein Hintergrundbild 
+    }
