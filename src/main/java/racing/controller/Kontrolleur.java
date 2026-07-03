@@ -39,7 +39,8 @@ public class Kontrolleur implements Runnable {
 
         Set<KeyCode> tasten = oberflaeche.gibGedrueckteTasten();
         boolean nitroGedrueckt = tasten.contains(KeyCode.N) ||
-            tasten.contains(KeyCode.B);
+            tasten.contains(KeyCode.B) ||
+            tasten.contains(KeyCode.SPACE);
 
         for (Spieler s : spiel.gibSpieler()) {
             Auto auto = s.gibAuto();
