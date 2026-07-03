@@ -32,6 +32,15 @@ public class Oberflaeche {
     private final Set<KeyCode> gedrueckteTasten = new HashSet<>();
 
     public Oberflaeche() {
+        // hier richtig Menü
+
+        // Namenseingabe
+        // Leaderboard
+        // Start Game
+        // Gespeicherter Spielstand
+        // Quit
+
+        //
         this.leinwand = new Canvas(BREITE, HOEHE);
         this.gc = leinwand.getGraphicsContext2D();
         this.wurzel = new Pane(leinwand);
