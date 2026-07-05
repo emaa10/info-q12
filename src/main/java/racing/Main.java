@@ -68,6 +68,7 @@ public class Main extends Application {
         });
 
         Scene szene = new Scene(oberflaeche.gibWurzel(), BREITE, HOEHE);
+        szene.getStylesheets().add(getClass().getResource("/css/menu.css").toExternalForm());
         buehne.setTitle("Racing Game Info Q12");
         buehne.setScene(szene);
         buehne.setMinHeight(HOEHE);

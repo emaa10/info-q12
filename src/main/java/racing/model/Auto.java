@@ -36,7 +36,7 @@ public class Auto implements Datenelement {
     private static final double NITRO_SCHUB = 0.08;
 
     public Auto(double x, double y, double winkel) {
-        this.maxSpeed = 2.5;
+        this.maxSpeed = 3.2;
         this.x = x;
         this.y = y;
         this.prevX = x;
@@ -65,10 +65,12 @@ public class Auto implements Datenelement {
         }
 
         // gesamtgeschwindigkeit begrenzen (nich pro achse, sonst diagonal schneller)
+        // mit nitro darf man drueber
+        double effektivMax = nitroAktiv() ? maxSpeed * 1.5 : maxSpeed;
         double speed = Math.sqrt(v_x * v_x + v_y * v_y);
-        if (speed > maxSpeed) {
-            v_x = v_x / speed * maxSpeed;
-            v_y = v_y / speed * maxSpeed;
+        if (speed > effektivMax) {
+            v_x = v_x / speed * effektivMax;
+            v_y = v_y / speed * effektivMax;
         }
         x += v_x;
         y += v_y;

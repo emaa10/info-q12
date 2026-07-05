@@ -63,13 +63,15 @@ public class Oberflaeche {
         // menü ebene: container fuer die einzelnen panels
         this.hauptmenuPanel = new VBox(24);
         this.hauptmenuPanel.setAlignment(Pos.CENTER);
+        this.hauptmenuPanel.getStyleClass().add("panel");
         this.leaderboardPanel = new VBox(16);
         this.leaderboardPanel.setAlignment(Pos.CENTER);
+        this.leaderboardPanel.getStyleClass().add("panel");
         this.leaderboardZeilen = new VBox(6);
         this.leaderboardZeilen.setAlignment(Pos.CENTER);
 
         this.menueEbene = new StackPane(hauptmenuPanel, leaderboardPanel);
-        this.menueEbene.setStyle("-fx-background-color: white;");
+        this.menueEbene.getStyleClass().add("menue-ebene");
 
         baueHauptmenue();
         baueLeaderboard();
@@ -95,12 +97,12 @@ public class Oberflaeche {
     // titel + name feld + buttons
     private void baueHauptmenue() {
         Label titel = new Label("RACING GAME");
-        titel.setFont(Font.font("Comic Sans MS", FontWeight.EXTRA_BOLD, 48));
+        titel.getStyleClass().add("titel");
 
         nameFeld = new TextField();
         nameFeld.setPromptText("Dein Name");
         nameFeld.setMaxWidth(240);
-        nameFeld.setFont(Font.font("Monospace", 16));
+        nameFeld.getStyleClass().add("name-feld");
 
         fortsetzenKnopf = new Button("Fortsetzen");
         Button startKnopf = new Button("Spiel starten");
@@ -109,8 +111,9 @@ public class Oberflaeche {
 
         for (Button b : new Button[] { fortsetzenKnopf, startKnopf, leaderboardKnopf, beendenKnopf }) {
             b.setPrefWidth(240);
-            b.setFont(Font.font("Monospace", FontWeight.BOLD, 18));
+            b.getStyleClass().add("menue-button");
         }
+        startKnopf.getStyleClass().add("start-button");
 
         // fortsetzen anfangs versteckt (gibt noch nix zum fortsetzen)
         fortsetzenKnopf.setVisible(false);
@@ -134,11 +137,11 @@ public class Oberflaeche {
     // leaderboard: titel, zeilen-container, zurueck
     private void baueLeaderboard() {
         Label titel = new Label("LEADERBOARD");
-        titel.setFont(Font.font("Monospace", FontWeight.EXTRA_BOLD, 40));
+        titel.getStyleClass().add("untertitel");
 
         Button zurueck = new Button("Zurueck");
         zurueck.setPrefWidth(240);
-        zurueck.setFont(Font.font("Monospace", FontWeight.BOLD, 18));
+        zurueck.getStyleClass().add("menue-button");
         zurueck.setOnAction(e -> zeigeHauptmenue());
 
         leaderboardPanel.getChildren().addAll(titel, leaderboardZeilen, zurueck);
@@ -180,14 +183,14 @@ public class Oberflaeche {
         leaderboardZeilen.getChildren().clear();
         if (zeilen.isEmpty()) {
             Label leer = new Label("noch keine eintraege");
-            leer.setFont(Font.font("Monospace", 16));
+            leer.setStyle("-fx-text-fill: #6b7488; -fx-font-family: Monospace; -fx-font-size: 15px;");
             leaderboardZeilen.getChildren().add(leer);
         } else {
             for (int i = 0; i < zeilen.size(); i++) {
                 int seed = seeds.get(i);
                 Button b = new Button(zeilen.get(i));
-                b.setFont(Font.font("Monospace", 14));
-                b.setPrefWidth(440);
+                b.getStyleClass().add("eintrag");
+                b.setPrefWidth(460);
                 b.setOnAction(e -> {
                     if (seedAktion != null) seedAktion.accept(seed);
                 });

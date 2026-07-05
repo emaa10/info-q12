@@ -57,7 +57,6 @@ public class Spiel implements Runnable {
     private void initialisiereLevel(int seed) {
         // seed in [1, 65536] bringen (laesst gueltige seeds unveraendert), sonst LCG-overflow
         seed = 1 + Math.floorMod(seed - 1, 65536);
-        System.out.println("[DEBUG] initialisiereLevel seed=" + seed);
         this.aktuellerSeed = seed;
         this.oberflaeche.loesche();
         this.level = new Level(new Map(this.oberflaeche.getMapView(), seed));
@@ -288,7 +287,6 @@ public class Spiel implements Runnable {
                         )
                     ) {
                         long jetzt = System.currentTimeMillis();
-                        System.out.println("[DEBUG] Ziellinie! checkpoints=" + naechsterCheckpoint + "/" + checkpoints.length + " lapStartZeit=" + lapStartZeit);
                         if (lapStartZeit < 0) {
                             lapStartZeit = jetzt;
                         } else if (naechsterCheckpoint == checkpoints.length) {
@@ -307,7 +305,6 @@ public class Spiel implements Runnable {
                             a.resetKollisionen();
                             lapStartZeit = jetzt;
                             // score + seed in die db fuers leaderboard
-                            System.out.println("[DEBUG] GESPEICHERT name=" + s.gibName() + " seed=" + aktuellerSeed + " score=" + letzterScore);
                             datenbank.speichereSpielstand(s.gibName(), aktuellerSeed, letzterScore, lapZeit);
                             // runde durch -> nitros wieder auffuellen
                             erneuereNitros();
