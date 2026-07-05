@@ -42,6 +42,10 @@ public class Oberflaeche {
 
     private final Set<KeyCode> gedrueckteTasten = new HashSet<>();
 
+    // Callback: was passieren soll, wenn "Spiel starten" geklickt wird.
+    // Wird von aussen (Main) gesetzt, damit die View das Spiel nicht direkt kennt.
+    private Runnable startAktion;
+
     public Oberflaeche() {
         // ----- Spiel-Ebene (unten): der Canvas, auf den das Rennen gemalt wird -----
         this.leinwand = new Canvas(BREITE, HOEHE);
@@ -93,11 +97,30 @@ public class Oberflaeche {
 
         // setOnAction() feuert bei Maus-Klick UND bei Enter/Space, wenn der Button
         // den Fokus hat. Das erledigt JavaFX automatisch - kein Tasten-Polling noetig.
-        startKnopf.setOnAction(e -> System.out.println("Start geklickt (Schritt 3 startet das Rennen)"));
+        // Der Button meldet nur "Start gedrueckt" nach aussen. WAS dann passiert
+        // (Menue ausblenden, Rennen starten), legt Main im Callback fest.
+        startKnopf.setOnAction(e -> {
+            if (startAktion != null) startAktion.run();
+        });
         leaderboardKnopf.setOnAction(e -> System.out.println("Leaderboard geklickt (Schritt 4)"));
         beendenKnopf.setOnAction(e -> Platform.exit());
 
         menueEbene.getChildren().addAll(titel, startKnopf, leaderboardKnopf, beendenKnopf);
+    }
+
+    // Legt fest, was beim Klick auf "Spiel starten" geschehen soll.
+    public void setzeStartAktion(Runnable startAktion) {
+        this.startAktion = startAktion;
+    }
+
+    // Menue-Ebene einblenden (verdeckt das Spiel darunter).
+    public void zeigeMenue() {
+        menueEbene.setVisible(true);
+    }
+
+    // Menue-Ebene ausblenden, sodass der Spiel-Canvas darunter sichtbar wird.
+    public void zeigeSpiel() {
+        menueEbene.setVisible(false);
     }
 
     public Parent gibWurzel() {

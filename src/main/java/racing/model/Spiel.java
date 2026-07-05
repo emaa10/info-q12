@@ -62,8 +62,16 @@ public class Spiel implements Runnable {
     @Override
     public void run() {
         laeuft = true;
-        countdownStartZeit = System.currentTimeMillis();
+        // Der Countdown startet NICHT mehr automatisch. Die Game-Loop laeuft zwar,
+        // aber solange countdownStartZeit < 0 ist, gilt das Rennen als nicht gestartet
+        // (siehe istRennenGestartet()) und die Autos bewegen sich nicht.
         spieleKreis();
+    }
+
+    // Wird aufgerufen, wenn der Spieler im Menue auf "Spiel starten" klickt.
+    // Erst ab jetzt laeuft der 3-Sekunden-Countdown und danach das Rennen.
+    public void starteRennen() {
+        countdownStartZeit = System.currentTimeMillis();
     }
 
     // game loop ihr deutschen

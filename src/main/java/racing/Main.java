@@ -26,6 +26,13 @@ public class Main extends Application {
         spiel = new Spiel(oberflaeche);
         kontrolleur = new Kontrolleur(oberflaeche, spiel);
 
+        // Beim Klick auf "Spiel starten": Menue ausblenden und das Rennen starten.
+        // Main verdrahtet hier View (oberflaeche) und Model (spiel) miteinander.
+        oberflaeche.setzeStartAktion(() -> {
+            oberflaeche.zeigeSpiel();
+            spiel.starteRennen();
+        });
+
         Scene szene = new Scene(oberflaeche.gibWurzel(), BREITE, HOEHE);
         buehne.setTitle("Rennspiel");
         buehne.setScene(szene);
