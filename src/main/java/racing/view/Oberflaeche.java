@@ -5,11 +5,16 @@ import java.util.Set;
 import javafx.application.Platform;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.geometry.Pos;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
@@ -20,7 +25,13 @@ public class Oberflaeche {
     private static final int BREITE = 960;
     private static final int HOEHE = 600;
 
-    private final Pane wurzel;
+    // Die Wurzel ist ein StackPane: es stapelt seine Kinder wie Ebenen
+    // uebereinander. Das erste Kind liegt unten, das letzte oben.
+    private final StackPane wurzel;
+    // Untere Ebene: hier laeuft das Rennen, gezeichnet auf den Canvas.
+    private final Pane spielEbene;
+    // Obere Ebene: das Menue aus echten JavaFX-Nodes (Schritt 2 fuellt sie).
+    private final VBox menueEbene;
     private final Canvas leinwand;
     private final GraphicsContext gc;
     private final Image baumBild;
@@ -32,19 +43,23 @@ public class Oberflaeche {
     private final Set<KeyCode> gedrueckteTasten = new HashSet<>();
 
     public Oberflaeche() {
-        // hier richtig Menü
-
-        // Namenseingabe
-        // Leaderboard
-        // Start Game
-        // Gespeicherter Spielstand
-        // Quit
-
-        //
+        // ----- Spiel-Ebene (unten): der Canvas, auf den das Rennen gemalt wird -----
         this.leinwand = new Canvas(BREITE, HOEHE);
         this.gc = leinwand.getGraphicsContext2D();
-        this.wurzel = new Pane(leinwand);
-        this.wurzel.setStyle("-fx-background-color: white;");
+        this.spielEbene = new Pane(leinwand);
+
+        // ----- Menue-Ebene (oben): echte JavaFX-Nodes statt Canvas-Text -----
+        // VBox(24) = vertikale Anordnung mit 24px Abstand zwischen den Kindern.
+        // Pos.CENTER zentriert die Kinder horizontal und vertikal.
+        this.menueEbene = new VBox(24);
+        this.menueEbene.setAlignment(Pos.CENTER);
+        this.menueEbene.setStyle("-fx-background-color: white;");
+        baueHauptmenue();
+
+        // ----- Wurzel: beide Ebenen uebereinanderstapeln -----
+        // Reihenfolge = Zeichenreihenfolge: spielEbene unten, menueEbene darueber.
+        this.wurzel = new StackPane(spielEbene, menueEbene);
+
         this.baumBild = new Image(
             getClass().getResourceAsStream("/images/tree.png")
         );
@@ -58,6 +73,31 @@ public class Oberflaeche {
             getClass().getResourceAsStream("/images/nitro.png")
         );
         this.mapView = new MapView(this.gc);
+    }
+
+    // Baut die Inhalte der Menue-Ebene: Titel + klickbare Buttons.
+    // Statt Text auf den Canvas zu malen, benutzen wir echte JavaFX-Nodes.
+    private void baueHauptmenue() {
+        Label titel = new Label("RENNSPIEL");
+        titel.setFont(Font.font("Monospace", FontWeight.EXTRA_BOLD, 48));
+
+        Button startKnopf = new Button("Spiel starten");
+        Button leaderboardKnopf = new Button("Leaderboard");
+        Button beendenKnopf = new Button("Beenden");
+
+        // Allen Buttons die gleiche Breite geben, damit sie buendig sind.
+        for (Button b : new Button[] { startKnopf, leaderboardKnopf, beendenKnopf }) {
+            b.setPrefWidth(240);
+            b.setFont(Font.font("Monospace", FontWeight.BOLD, 18));
+        }
+
+        // setOnAction() feuert bei Maus-Klick UND bei Enter/Space, wenn der Button
+        // den Fokus hat. Das erledigt JavaFX automatisch - kein Tasten-Polling noetig.
+        startKnopf.setOnAction(e -> System.out.println("Start geklickt (Schritt 3 startet das Rennen)"));
+        leaderboardKnopf.setOnAction(e -> System.out.println("Leaderboard geklickt (Schritt 4)"));
+        beendenKnopf.setOnAction(e -> Platform.exit());
+
+        menueEbene.getChildren().addAll(titel, startKnopf, leaderboardKnopf, beendenKnopf);
     }
 
     public Parent gibWurzel() {

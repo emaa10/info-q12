@@ -41,9 +41,16 @@ export FX=/Users/emanuel/javafx-sdk-17.0.19/lib
 
 # kompilieren
 javac --module-path "$FX" --add-modules javafx.controls,javafx.fxml,javafx.graphics -cp "lib/*" -d out $(find src/main/java -name "*.java")
+cp -r src/main/resources/* out/
 
 # starten
 java --module-path "$FX" --add-modules javafx.controls -cp "out:lib/*" racing.Main
+```
+
+Skripte:
+```bash
+./compile.sh   # kompilieren + Ressourcen kopieren
+./start.sh     # starten
 ```
 
 > **Windows:** Trennzeichen im `-cp`-Flag ist `;` statt `:`, also `out;lib\sqlite-jdbc-3.46.0.0.jar`
