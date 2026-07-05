@@ -234,6 +234,8 @@ public class Spiel implements Runnable {
                             );
                             a.resetKollisionen();
                             lapStartZeit = jetzt;
+                            // score in die db fuers leaderboard
+                            datenbank.speichereSpielstand(s.gibName(), 1, letzterScore, lapZeit);
                             // runde durch -> nitros wieder auffuellen
                             erneuereNitros();
                         }

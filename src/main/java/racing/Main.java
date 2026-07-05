@@ -26,13 +26,20 @@ public class Main extends Application {
         spiel = new Spiel(oberflaeche);
         kontrolleur = new Kontrolleur(oberflaeche, spiel);
 
-        // Beim Klick auf "Spiel starten": Menue ausblenden und das Rennen starten.
-        // Main verdrahtet hier View (oberflaeche) und Model (spiel) miteinander.
+        // view und model verdrahten (mvc)
         oberflaeche.setzeStartAktion(() -> {
             spiel.setzeSpielerName(oberflaeche.gibSpielerName());
             oberflaeche.zeigeSpiel();
-            spiel.starteRennen();
+            spiel.fortsetzen();
+            if (!spiel.istGestartet()) spiel.starteRennen(); // countdown nur beim 1. mal
         });
+        oberflaeche.setzePauseAktion(() -> {
+            spiel.pausiere();
+            oberflaeche.zeigeMenue();
+        });
+        oberflaeche.setzeLeaderboardAktion(() ->
+            oberflaeche.zeigeLeaderboard(spiel.gibLeaderboardZeilen(1))
+        );
 
         Scene szene = new Scene(oberflaeche.gibWurzel(), BREITE, HOEHE);
         buehne.setTitle("Rennspiel");
