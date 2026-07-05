@@ -3,6 +3,7 @@ package racing.model;
 import java.util.List;
 
 import racing.datastructure.Knoten;
+import racing.datastructure.Liste;
 import racing.datastructure.Listenelement;
 import racing.view.Oberflaeche;
 
@@ -15,6 +16,7 @@ public class Spiel implements Runnable {
     private Oberflaeche oberflaeche;
 
     private volatile boolean laeuft;
+    private volatile boolean pausiert = false;
 
     private double[] startLinieA;
     private double[] startLinieB;
@@ -62,16 +64,52 @@ public class Spiel implements Runnable {
     @Override
     public void run() {
         laeuft = true;
-        // Der Countdown startet NICHT mehr automatisch. Die Game-Loop laeuft zwar,
-        // aber solange countdownStartZeit < 0 ist, gilt das Rennen als nicht gestartet
-        // (siehe istRennenGestartet()) und die Autos bewegen sich nicht.
+        // countdown erst bei starteRennen(), nich automatisch
         spieleKreis();
     }
 
-    // Wird aufgerufen, wenn der Spieler im Menue auf "Spiel starten" klickt.
-    // Erst ab jetzt laeuft der 3-Sekunden-Countdown und danach das Rennen.
+    // start-button im menü -> countdown laeuft los
     public void starteRennen() {
         countdownStartZeit = System.currentTimeMillis();
+    }
+
+    // schon mal gestartet? (fuer fortsetzen nach pause)
+    public boolean istGestartet() {
+        return countdownStartZeit >= 0;
+    }
+
+    public void pausiere() {
+        pausiert = true;
+    }
+
+    public void fortsetzen() {
+        pausiert = false;
+    }
+
+    public boolean istPausiert() {
+        return pausiert;
+    }
+
+    public void setzeSpielerName(String name) {
+        if (spieler != null && spieler.length > 0) {
+            spieler[0].setzeName(name);
+        }
+    }
+
+    // top10 aus der db als fertige text-zeilen fuers menü
+    public List<String> gibLeaderboardZeilen(int levelId) {
+        List<String> zeilen = new java.util.ArrayList<>();
+        Liste top = datenbank.ladeHighscores(levelId);
+        Listenelement el = top.gibAnfang();
+        int platz = 1;
+        while (!el.istAbschluss()) {
+            SpielstandEintrag e = (SpielstandEintrag) ((Knoten) el).gebeDaten();
+            zeilen.add(platz + ". " + e.gibSpielerName() + "   " + e.gibPunkte()
+                + " P   " + (e.gibZeitMs() / 1000.0) + " s");
+            el = ((Knoten) el).gebeNachfolger();
+            platz++;
+        }
+        return zeilen;
     }
 
     // game loop ihr deutschen
@@ -90,6 +128,17 @@ public class Spiel implements Runnable {
 
         // Spielschleife
         while (laeuft) {
+            // pause -> nix simulieren, bild bleibt stehen
+            if (pausiert) {
+                try {
+                    Thread.sleep(16);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    laeuft = false;
+                }
+                continue;
+            }
+
             for (Spieler s : spieler) {
                 Auto a = s.gibAuto();
                 a.itr();
@@ -185,6 +234,8 @@ public class Spiel implements Runnable {
                             );
                             a.resetKollisionen();
                             lapStartZeit = jetzt;
+                            // runde durch -> nitros wieder auffuellen
+                            erneuereNitros();
                         }
                         naechsterCheckpoint = 0;
                         kreuzungsCooldown = 180;
@@ -282,6 +333,22 @@ public class Spiel implements Runnable {
         if (vergangen < COUNTDOWN_DAUER_MS) return "1";
         if (vergangen < COUNTDOWN_DAUER_MS + GO_ANZEIGE_DAUER_MS) return "GO";
         return null;
+    }
+
+    // alte nitros raus, neue rein (pool nutzt die alten wieder)
+    private void erneuereNitros() {
+        // erst sammeln, dann entfernen (nich waehrend iteration loeschen)
+        List<Gegenstand> zuEntfernen = new java.util.ArrayList<>();
+        Listenelement el = level.gibGegenstaende().gibAnfang();
+        while (!el.istAbschluss()) {
+            Gegenstand g = (Gegenstand) ((Knoten) el).gebeDaten();
+            if (g instanceof Nitro) zuEntfernen.add(g);
+            el = ((Knoten) el).gebeNachfolger();
+        }
+        for (Gegenstand g : zuEntfernen) {
+            level.entferneGegenstand(g);
+        }
+        platziereNitros();
     }
 
     private void platziereNitros() {

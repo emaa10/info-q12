@@ -1,6 +1,7 @@
 package racing.view;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import javafx.application.Platform;
 import javafx.scene.Parent;
@@ -10,6 +11,7 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.Pane;
@@ -25,13 +27,13 @@ public class Oberflaeche {
     private static final int BREITE = 960;
     private static final int HOEHE = 600;
 
-    // Die Wurzel ist ein StackPane: es stapelt seine Kinder wie Ebenen
-    // uebereinander. Das erste Kind liegt unten, das letzte oben.
+    // wurzel stapelt die ebenen uebereinander (erstes kind unten)
     private final StackPane wurzel;
-    // Untere Ebene: hier laeuft das Rennen, gezeichnet auf den Canvas.
-    private final Pane spielEbene;
-    // Obere Ebene: das Menue aus echten JavaFX-Nodes (Schritt 2 fuellt sie).
-    private final VBox menueEbene;
+    private final Pane spielEbene;      // canvas / rennen
+    private final StackPane menueEbene; // menü drueber, per setVisible an/aus
+    private final VBox hauptmenuPanel;
+    private final VBox leaderboardPanel;
+    private final VBox leaderboardZeilen; // hier kommen die eintraege rein
     private final Canvas leinwand;
     private final GraphicsContext gc;
     private final Image baumBild;
@@ -42,26 +44,33 @@ public class Oberflaeche {
 
     private final Set<KeyCode> gedrueckteTasten = new HashSet<>();
 
-    // Callback: was passieren soll, wenn "Spiel starten" geklickt wird.
-    // Wird von aussen (Main) gesetzt, damit die View das Spiel nicht direkt kennt.
+    // callbacks, damit view das spiel nich direkt kennt (mvc)
     private Runnable startAktion;
+    private Runnable pauseAktion;
+    private Runnable leaderboardAktion;
+
+    private TextField nameFeld;
 
     public Oberflaeche() {
-        // ----- Spiel-Ebene (unten): der Canvas, auf den das Rennen gemalt wird -----
         this.leinwand = new Canvas(BREITE, HOEHE);
         this.gc = leinwand.getGraphicsContext2D();
         this.spielEbene = new Pane(leinwand);
 
-        // ----- Menue-Ebene (oben): echte JavaFX-Nodes statt Canvas-Text -----
-        // VBox(24) = vertikale Anordnung mit 24px Abstand zwischen den Kindern.
-        // Pos.CENTER zentriert die Kinder horizontal und vertikal.
-        this.menueEbene = new VBox(24);
-        this.menueEbene.setAlignment(Pos.CENTER);
-        this.menueEbene.setStyle("-fx-background-color: white;");
-        baueHauptmenue();
+        // menü ebene: container fuer die einzelnen panels
+        this.hauptmenuPanel = new VBox(24);
+        this.hauptmenuPanel.setAlignment(Pos.CENTER);
+        this.leaderboardPanel = new VBox(16);
+        this.leaderboardPanel.setAlignment(Pos.CENTER);
+        this.leaderboardZeilen = new VBox(6);
+        this.leaderboardZeilen.setAlignment(Pos.CENTER);
 
-        // ----- Wurzel: beide Ebenen uebereinanderstapeln -----
-        // Reihenfolge = Zeichenreihenfolge: spielEbene unten, menueEbene darueber.
+        this.menueEbene = new StackPane(hauptmenuPanel, leaderboardPanel);
+        this.menueEbene.setStyle("-fx-background-color: white;");
+
+        baueHauptmenue();
+        baueLeaderboard();
+        zeigeHauptmenue();
+
         this.wurzel = new StackPane(spielEbene, menueEbene);
 
         this.baumBild = new Image(
@@ -79,46 +88,97 @@ public class Oberflaeche {
         this.mapView = new MapView(this.gc);
     }
 
-    // Baut die Inhalte der Menue-Ebene: Titel + klickbare Buttons.
-    // Statt Text auf den Canvas zu malen, benutzen wir echte JavaFX-Nodes.
+    // titel + name feld + buttons
     private void baueHauptmenue() {
         Label titel = new Label("RENNSPIEL");
         titel.setFont(Font.font("Monospace", FontWeight.EXTRA_BOLD, 48));
+
+        nameFeld = new TextField();
+        nameFeld.setPromptText("Dein Name");
+        nameFeld.setMaxWidth(240);
+        nameFeld.setFont(Font.font("Monospace", 16));
 
         Button startKnopf = new Button("Spiel starten");
         Button leaderboardKnopf = new Button("Leaderboard");
         Button beendenKnopf = new Button("Beenden");
 
-        // Allen Buttons die gleiche Breite geben, damit sie buendig sind.
         for (Button b : new Button[] { startKnopf, leaderboardKnopf, beendenKnopf }) {
             b.setPrefWidth(240);
             b.setFont(Font.font("Monospace", FontWeight.BOLD, 18));
         }
 
-        // setOnAction() feuert bei Maus-Klick UND bei Enter/Space, wenn der Button
-        // den Fokus hat. Das erledigt JavaFX automatisch - kein Tasten-Polling noetig.
-        // Der Button meldet nur "Start gedrueckt" nach aussen. WAS dann passiert
-        // (Menue ausblenden, Rennen starten), legt Main im Callback fest.
+        // klick feuert auch bei enter/space, macht javafx selbst
         startKnopf.setOnAction(e -> {
             if (startAktion != null) startAktion.run();
         });
-        leaderboardKnopf.setOnAction(e -> System.out.println("Leaderboard geklickt (Schritt 4)"));
+        leaderboardKnopf.setOnAction(e -> {
+            if (leaderboardAktion != null) leaderboardAktion.run();
+        });
         beendenKnopf.setOnAction(e -> Platform.exit());
 
-        menueEbene.getChildren().addAll(titel, startKnopf, leaderboardKnopf, beendenKnopf);
+        hauptmenuPanel.getChildren().addAll(titel, nameFeld, startKnopf, leaderboardKnopf, beendenKnopf);
     }
 
-    // Legt fest, was beim Klick auf "Spiel starten" geschehen soll.
+    // leaderboard: titel, zeilen-container, zurueck
+    private void baueLeaderboard() {
+        Label titel = new Label("LEADERBOARD");
+        titel.setFont(Font.font("Monospace", FontWeight.EXTRA_BOLD, 40));
+
+        Button zurueck = new Button("Zurueck");
+        zurueck.setPrefWidth(240);
+        zurueck.setFont(Font.font("Monospace", FontWeight.BOLD, 18));
+        zurueck.setOnAction(e -> zeigeHauptmenue());
+
+        leaderboardPanel.getChildren().addAll(titel, leaderboardZeilen, zurueck);
+    }
+
+    public String gibSpielerName() {
+        String name = nameFeld.getText().trim();
+        return name.isEmpty() ? "Spieler 1" : name;
+    }
+
     public void setzeStartAktion(Runnable startAktion) {
         this.startAktion = startAktion;
     }
 
-    // Menue-Ebene einblenden (verdeckt das Spiel darunter).
+    public void setzePauseAktion(Runnable pauseAktion) {
+        this.pauseAktion = pauseAktion;
+    }
+
+    public void setzeLeaderboardAktion(Runnable leaderboardAktion) {
+        this.leaderboardAktion = leaderboardAktion;
+    }
+
+    // main gibt fertige zeilen rein, wir bauen labels draus
+    public void zeigeLeaderboard(List<String> zeilen) {
+        leaderboardZeilen.getChildren().clear();
+        if (zeilen.isEmpty()) {
+            Label leer = new Label("noch keine eintraege");
+            leer.setFont(Font.font("Monospace", 16));
+            leaderboardZeilen.getChildren().add(leer);
+        } else {
+            for (String z : zeilen) {
+                Label l = new Label(z);
+                l.setFont(Font.font("Monospace", 15));
+                leaderboardZeilen.getChildren().add(l);
+            }
+        }
+        hauptmenuPanel.setVisible(false);
+        leaderboardPanel.setVisible(true);
+    }
+
+    public void zeigeHauptmenue() {
+        leaderboardPanel.setVisible(false);
+        hauptmenuPanel.setVisible(true);
+    }
+
+    // menü an, spiel dahinter versteckt
     public void zeigeMenue() {
+        zeigeHauptmenue();
         menueEbene.setVisible(true);
     }
 
-    // Menue-Ebene ausblenden, sodass der Spiel-Canvas darunter sichtbar wird.
+    // menü aus, canvas sichtbar
     public void zeigeSpiel() {
         menueEbene.setVisible(false);
     }
@@ -131,9 +191,19 @@ public class Oberflaeche {
         return this.mapView;
     }
 
-    // Muss nach Scene-Erstellung aufgerufen werden
+    // nach scene-erstellung aufrufen
     public void registriereEingabe(Scene szene) {
-        szene.setOnKeyPressed(e -> gedrueckteTasten.add(e.getCode()));
+        szene.setOnKeyPressed(e -> {
+            // esc im rennen -> pause menü
+            if (e.getCode() == KeyCode.ESCAPE) {
+                if (!menueEbene.isVisible() && pauseAktion != null) {
+                    gedrueckteTasten.clear(); // sonst haengt ne taste
+                    pauseAktion.run();
+                }
+                return;
+            }
+            gedrueckteTasten.add(e.getCode());
+        });
         szene.setOnKeyReleased(e -> gedrueckteTasten.remove(e.getCode()));
     }
 

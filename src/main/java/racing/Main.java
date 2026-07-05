@@ -29,6 +29,7 @@ public class Main extends Application {
         // Beim Klick auf "Spiel starten": Menue ausblenden und das Rennen starten.
         // Main verdrahtet hier View (oberflaeche) und Model (spiel) miteinander.
         oberflaeche.setzeStartAktion(() -> {
+            spiel.setzeSpielerName(oberflaeche.gibSpielerName());
             oberflaeche.zeigeSpiel();
             spiel.starteRennen();
         });
