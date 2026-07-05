@@ -55,8 +55,8 @@ public class Spiel implements Runnable {
 
     // baut map/level/auto neu auf und setzt alle renn-zustaende zurueck
     private void initialisiereLevel(int seed) {
-        // jeden seed in [1, 65536] bringen (auch alte grosse aus der db), sonst LCG-overflow
-        seed = 1 + Math.floorMod(seed, 65536);
+        // seed in [1, 65536] bringen (laesst gueltige seeds unveraendert), sonst LCG-overflow
+        seed = 1 + Math.floorMod(seed - 1, 65536);
         System.out.println("[DEBUG] initialisiereLevel seed=" + seed);
         this.aktuellerSeed = seed;
         this.oberflaeche.loesche();

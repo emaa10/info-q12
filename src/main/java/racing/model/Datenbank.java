@@ -70,6 +70,21 @@ public class Datenbank {
         }
     }
 
+    // welche seeds hat dieser spieler schon gespielt (abgeschlossen)
+    public java.util.Set<Integer> ladeSeedsVon(String spielerName) {
+        java.util.Set<Integer> seeds = new java.util.HashSet<>();
+        if (connection == null) return seeds;
+        String sql = "SELECT DISTINCT seed FROM spielstand WHERE spieler_name = ?";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, spielerName);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) seeds.add(rs.getInt("seed"));
+        } catch (SQLException e) {
+            System.err.println("Datenbankfehler beim Seed-Laden: " + e.getMessage());
+        }
+        return seeds;
+    }
+
     // top10 ueber alle seeds
     public Liste ladeTopGlobal() {
         Liste ergebnisse = new Liste();
