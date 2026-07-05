@@ -3,6 +3,7 @@ package racing.view;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.IntConsumer;
 import javafx.application.Platform;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -48,8 +49,11 @@ public class Oberflaeche {
     private Runnable startAktion;
     private Runnable pauseAktion;
     private Runnable leaderboardAktion;
+    private Runnable fortsetzenAktion;
+    private IntConsumer seedAktion; // klick auf leaderboard-eintrag -> seed spielen
 
     private TextField nameFeld;
+    private Button fortsetzenKnopf; // nur sichtbar wenn pausiert
 
     public Oberflaeche() {
         this.leinwand = new Canvas(BREITE, HOEHE);
@@ -90,24 +94,32 @@ public class Oberflaeche {
 
     // titel + name feld + buttons
     private void baueHauptmenue() {
-        Label titel = new Label("RENNSPIEL");
-        titel.setFont(Font.font("Monospace", FontWeight.EXTRA_BOLD, 48));
+        Label titel = new Label("RACING GAME");
+        titel.setFont(Font.font("Comic Sans MS", FontWeight.EXTRA_BOLD, 48));
 
         nameFeld = new TextField();
         nameFeld.setPromptText("Dein Name");
         nameFeld.setMaxWidth(240);
         nameFeld.setFont(Font.font("Monospace", 16));
 
+        fortsetzenKnopf = new Button("Fortsetzen");
         Button startKnopf = new Button("Spiel starten");
         Button leaderboardKnopf = new Button("Leaderboard");
         Button beendenKnopf = new Button("Beenden");
 
-        for (Button b : new Button[] { startKnopf, leaderboardKnopf, beendenKnopf }) {
+        for (Button b : new Button[] { fortsetzenKnopf, startKnopf, leaderboardKnopf, beendenKnopf }) {
             b.setPrefWidth(240);
             b.setFont(Font.font("Monospace", FontWeight.BOLD, 18));
         }
 
+        // fortsetzen anfangs versteckt (gibt noch nix zum fortsetzen)
+        fortsetzenKnopf.setVisible(false);
+        fortsetzenKnopf.setManaged(false);
+
         // klick feuert auch bei enter/space, macht javafx selbst
+        fortsetzenKnopf.setOnAction(e -> {
+            if (fortsetzenAktion != null) fortsetzenAktion.run();
+        });
         startKnopf.setOnAction(e -> {
             if (startAktion != null) startAktion.run();
         });
@@ -116,7 +128,7 @@ public class Oberflaeche {
         });
         beendenKnopf.setOnAction(e -> Platform.exit());
 
-        hauptmenuPanel.getChildren().addAll(titel, nameFeld, startKnopf, leaderboardKnopf, beendenKnopf);
+        hauptmenuPanel.getChildren().addAll(titel, fortsetzenKnopf, nameFeld, startKnopf, leaderboardKnopf, beendenKnopf);
     }
 
     // leaderboard: titel, zeilen-container, zurueck
@@ -149,18 +161,37 @@ public class Oberflaeche {
         this.leaderboardAktion = leaderboardAktion;
     }
 
-    // main gibt fertige zeilen rein, wir bauen labels draus
-    public void zeigeLeaderboard(List<String> zeilen) {
+    public void setzeFortsetzenAktion(Runnable fortsetzenAktion) {
+        this.fortsetzenAktion = fortsetzenAktion;
+    }
+
+    public void setzeSeedAktion(IntConsumer seedAktion) {
+        this.seedAktion = seedAktion;
+    }
+
+    // fortsetzen-knopf an/aus (an wenn ein spiel pausiert ist)
+    public void setzeFortsetzenSichtbar(boolean sichtbar) {
+        fortsetzenKnopf.setVisible(sichtbar);
+        fortsetzenKnopf.setManaged(sichtbar);
+    }
+
+    // je zeile ein button, klick spielt den seed
+    public void zeigeLeaderboard(List<String> zeilen, List<Integer> seeds) {
         leaderboardZeilen.getChildren().clear();
         if (zeilen.isEmpty()) {
             Label leer = new Label("noch keine eintraege");
             leer.setFont(Font.font("Monospace", 16));
             leaderboardZeilen.getChildren().add(leer);
         } else {
-            for (String z : zeilen) {
-                Label l = new Label(z);
-                l.setFont(Font.font("Monospace", 15));
-                leaderboardZeilen.getChildren().add(l);
+            for (int i = 0; i < zeilen.size(); i++) {
+                int seed = seeds.get(i);
+                Button b = new Button(zeilen.get(i));
+                b.setFont(Font.font("Monospace", 14));
+                b.setPrefWidth(440);
+                b.setOnAction(e -> {
+                    if (seedAktion != null) seedAktion.accept(seed);
+                });
+                leaderboardZeilen.getChildren().add(b);
             }
         }
         hauptmenuPanel.setVisible(false);
@@ -307,9 +338,17 @@ public class Oberflaeche {
         int kollisionen,
         int letzterScore,
         String nitroStatus,
-        double nitroFortschritt
+        double nitroFortschritt,
+        int seed
     ) {
         Platform.runLater(() -> {
+            // seed oben links anzeigen
+            gc.setFill(Color.rgb(0, 0, 0, 0.55));
+            gc.fillRoundRect(12, 12, 190, 26, 8, 8);
+            gc.setFill(Color.WHITE);
+            gc.setFont(Font.font("Monospace", FontWeight.BOLD, 13));
+            gc.fillText("Seed: " + seed, 22, 30);
+
             // warnung wenn man von der strecke fährt
             if (!aufStrecke) {
                 gc.setFill(Color.rgb(200, 0, 0, 0.85));

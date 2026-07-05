@@ -17,6 +17,13 @@ public class Spiel implements Runnable {
 
     private volatile boolean laeuft;
     private volatile boolean pausiert = false;
+    private long pauseBeginn = -1;
+
+    private int aktuellerSeed;
+    private String spielerName = "Spieler 1";
+    // neustart wird vom menü angefordert, aber im gamethread ausgefuehrt (thread-safe)
+    private volatile boolean neustartAngefordert = false;
+    private volatile int neustartSeed;
 
     private double[] startLinieA;
     private double[] startLinieB;
@@ -43,7 +50,17 @@ public class Spiel implements Runnable {
         this.oberflaeche.loesche();
         this.datenbank = new Datenbank();
         this.datenbank.verbinde();
-        this.level = new Level(new Map(this.oberflaeche.getMapView()));
+        initialisiereLevel(erzeugeSeed());
+    }
+
+    // baut map/level/auto neu auf und setzt alle renn-zustaende zurueck
+    private void initialisiereLevel(int seed) {
+        // jeden seed in [1, 65536] bringen (auch alte grosse aus der db), sonst LCG-overflow
+        seed = 1 + Math.floorMod(seed, 65536);
+        System.out.println("[DEBUG] initialisiereLevel seed=" + seed);
+        this.aktuellerSeed = seed;
+        this.oberflaeche.loesche();
+        this.level = new Level(new Map(this.oberflaeche.getMapView(), seed));
 
         Map map = this.level.gibMap();
         this.startLinieA = map.getStartLinieA();
@@ -58,7 +75,52 @@ public class Spiel implements Runnable {
         double autoX = startPt[0] - startLinieTangent[0] * START_ABSTAND;
         double autoY = startPt[1] - startLinieTangent[1] * START_ABSTAND;
         Auto auto = new Auto(autoX, autoY, startAngle);
-        this.spieler = new Spieler[] { new Spieler("Spieler 1", auto) };
+        this.spieler = new Spieler[] { new Spieler(spielerName, auto) };
+
+        // zustand zuruecksetzen
+        this.naechsterCheckpoint = 0;
+        this.lapStartZeit = -1;
+        this.lapZaehler = 0;
+        this.besteRunde = -1;
+        this.kreuzungsCooldown = 300;
+        this.aufStrecke = true;
+        this.letzterScore = 0;
+        this.countdownStartZeit = -1;
+        this.pausiert = false;
+        this.pauseBeginn = -1;
+
+        platziereBaeumeUndNitros();
+    }
+
+    // baeume an feste ecken, nitros auf die strecke
+    private void platziereBaeumeUndNitros() {
+        Map map = this.level.gibMap();
+        int x = 150, y = 80;
+        while (map.distanceToTrack(x, y) < 120) y += 10;
+        level.platziereGegenstand(new Baum(), x, y);
+        x = 780; y = 80;
+        while (map.distanceToTrack(x, y) < 120) y += 10;
+        level.platziereGegenstand(new Baum(), x, y);
+        x = 480; y = 520;
+        while (map.distanceToTrack(x, y) < 120) y -= 10;
+        level.platziereGegenstand(new Baum(), x, y);
+        platziereNitros();
+    }
+
+    // seed in [1, 65536], sonst overflow im LCG (multiplikation) -> kaputte map
+    public int erzeugeSeed() {
+        return 1 + (int) Math.floorMod(System.nanoTime(), 65536L);
+    }
+
+    public int gibAktuellenSeed() {
+        return aktuellerSeed;
+    }
+
+    // vom menü (fx-thread): neues spiel mit diesem seed. gamethread macht den rest
+    public void neuesSpielMitSeed(int seed) {
+        neustartSeed = seed;
+        neustartAngefordert = true;
+        pausiert = false;
     }
 
     @Override
@@ -79,11 +141,21 @@ public class Spiel implements Runnable {
     }
 
     public void pausiere() {
-        pausiert = true;
+        if (!pausiert) {
+            pausiert = true;
+            pauseBeginn = System.currentTimeMillis();
+        }
     }
 
     public void fortsetzen() {
-        pausiert = false;
+        if (pausiert) {
+            pausiert = false;
+            // zeitstempel um die pausendauer verschieben, sonst laeuft die uhr weiter
+            long dauer = System.currentTimeMillis() - pauseBeginn;
+            if (lapStartZeit >= 0) lapStartZeit += dauer;
+            if (countdownStartZeit >= 0) countdownStartZeit += dauer;
+            pauseBeginn = -1;
+        }
     }
 
     public boolean istPausiert() {
@@ -91,43 +163,35 @@ public class Spiel implements Runnable {
     }
 
     public void setzeSpielerName(String name) {
+        this.spielerName = name;
         if (spieler != null && spieler.length > 0) {
             spieler[0].setzeName(name);
         }
     }
 
-    // top10 aus der db als fertige text-zeilen fuers menü
-    public List<String> gibLeaderboardZeilen(int levelId) {
-        List<String> zeilen = new java.util.ArrayList<>();
-        Liste top = datenbank.ladeHighscores(levelId);
+    // top10 aus der db (main baut daraus die menü-zeilen)
+    public List<SpielstandEintrag> gibLeaderboardEintraege() {
+        List<SpielstandEintrag> liste = new java.util.ArrayList<>();
+        Liste top = datenbank.ladeTopGlobal();
         Listenelement el = top.gibAnfang();
-        int platz = 1;
         while (!el.istAbschluss()) {
-            SpielstandEintrag e = (SpielstandEintrag) ((Knoten) el).gebeDaten();
-            zeilen.add(platz + ". " + e.gibSpielerName() + "   " + e.gibPunkte()
-                + " P   " + (e.gibZeitMs() / 1000.0) + " s");
+            liste.add((SpielstandEintrag) ((Knoten) el).gebeDaten());
             el = ((Knoten) el).gebeNachfolger();
-            platz++;
         }
-        return zeilen;
+        return liste;
     }
 
     // game loop ihr deutschen
     public void spieleKreis() {
-        Map map = this.level.gibMap();
-        int x = 150, y = 80;
-        while (map.distanceToTrack(x, y) < 120) y += 10;
-        level.platziereGegenstand(new Baum(), x, y);
-        x = 780; y = 80;
-        while (map.distanceToTrack(x, y) < 120) y += 10;
-        level.platziereGegenstand(new Baum(), x, y);
-        x = 480; y = 520;
-        while (map.distanceToTrack(x, y) < 120) y -= 10;
-        level.platziereGegenstand(new Baum(), x, y);
-        platziereNitros();
-
         // Spielschleife
         while (laeuft) {
+            // neustart mit neuem seed, im gamethread damit thread-safe
+            if (neustartAngefordert) {
+                neustartAngefordert = false;
+                initialisiereLevel(neustartSeed);
+                starteRennen();
+                continue;
+            }
             // pause -> nix simulieren, bild bleibt stehen
             if (pausiert) {
                 try {
@@ -217,6 +281,7 @@ public class Spiel implements Runnable {
                         )
                     ) {
                         long jetzt = System.currentTimeMillis();
+                        System.out.println("[DEBUG] Ziellinie! checkpoints=" + naechsterCheckpoint + "/" + checkpoints.length + " lapStartZeit=" + lapStartZeit);
                         if (lapStartZeit < 0) {
                             lapStartZeit = jetzt;
                         } else if (naechsterCheckpoint == checkpoints.length) {
@@ -234,8 +299,9 @@ public class Spiel implements Runnable {
                             );
                             a.resetKollisionen();
                             lapStartZeit = jetzt;
-                            // score in die db fuers leaderboard
-                            datenbank.speichereSpielstand(s.gibName(), 1, letzterScore, lapZeit);
+                            // score + seed in die db fuers leaderboard
+                            System.out.println("[DEBUG] GESPEICHERT name=" + s.gibName() + " seed=" + aktuellerSeed + " score=" + letzterScore);
+                            datenbank.speichereSpielstand(s.gibName(), aktuellerSeed, letzterScore, lapZeit);
                             // runde durch -> nitros wieder auffuellen
                             erneuereNitros();
                         }
@@ -300,7 +366,8 @@ public class Spiel implements Runnable {
                 kollisionen,
                 letzterScore,
                 hudAuto.gibNitroStatus(),
-                hudAuto.gibNitroFortschritt()
+                hudAuto.gibNitroFortschritt(),
+                aktuellerSeed
             );
             String countdownText = gibCountdownText();
             if (countdownText != null) {

@@ -1,10 +1,13 @@
 package racing;
 
+import java.util.ArrayList;
+import java.util.List;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import racing.controller.Kontrolleur;
 import racing.model.Spiel;
+import racing.model.SpielstandEintrag;
 import racing.view.Oberflaeche;
 
 public class Main extends Application {
@@ -27,22 +30,45 @@ public class Main extends Application {
         kontrolleur = new Kontrolleur(oberflaeche, spiel);
 
         // view und model verdrahten (mvc)
+        // spiel starten = immer neuer seed
         oberflaeche.setzeStartAktion(() -> {
             spiel.setzeSpielerName(oberflaeche.gibSpielerName());
             oberflaeche.zeigeSpiel();
+            spiel.neuesSpielMitSeed(spiel.erzeugeSeed());
+        });
+        // fortsetzen = gleicher seed weiter
+        oberflaeche.setzeFortsetzenAktion(() -> {
+            oberflaeche.zeigeSpiel();
             spiel.fortsetzen();
-            if (!spiel.istGestartet()) spiel.starteRennen(); // countdown nur beim 1. mal
         });
         oberflaeche.setzePauseAktion(() -> {
             spiel.pausiere();
+            oberflaeche.setzeFortsetzenSichtbar(true);
             oberflaeche.zeigeMenue();
         });
-        oberflaeche.setzeLeaderboardAktion(() ->
-            oberflaeche.zeigeLeaderboard(spiel.gibLeaderboardZeilen(1))
-        );
+        // leaderboard: eintraege in text-zeilen + seeds umbauen
+        oberflaeche.setzeLeaderboardAktion(() -> {
+            List<SpielstandEintrag> eintraege = spiel.gibLeaderboardEintraege();
+            List<String> zeilen = new ArrayList<>();
+            List<Integer> seeds = new ArrayList<>();
+            int platz = 1;
+            for (SpielstandEintrag e : eintraege) {
+                zeilen.add(platz + ". " + e.gibSpielerName() + "   " + e.gibPunkte()
+                    + " P   " + (e.gibZeitMs() / 1000.0) + " s   [seed " + e.gibSeed() + "]");
+                seeds.add(e.gibSeed());
+                platz++;
+            }
+            oberflaeche.zeigeLeaderboard(zeilen, seeds);
+        });
+        // klick auf leaderboard-eintrag = dieses level (seed) spielen
+        oberflaeche.setzeSeedAktion(seed -> {
+            spiel.setzeSpielerName(oberflaeche.gibSpielerName());
+            oberflaeche.zeigeSpiel();
+            spiel.neuesSpielMitSeed(seed);
+        });
 
         Scene szene = new Scene(oberflaeche.gibWurzel(), BREITE, HOEHE);
-        buehne.setTitle("Rennspiel");
+        buehne.setTitle("Racing Game Info Q12");
         buehne.setScene(szene);
         buehne.setMinHeight(HOEHE);
         buehne.setMinWidth(BREITE);

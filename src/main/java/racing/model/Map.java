@@ -39,10 +39,12 @@ public class Map {
     private boolean[] onTrackGrid;
     private int[] rngPool;
     private int rngIdx;
+    private int seed;
 
-    public Map(racing.view.MapView mapView) {
+    public Map(racing.view.MapView mapView, int seed) {
         this.view = mapView;
-        LCG lcg = new LCG();
+        this.seed = seed;
+        LCG lcg = new LCG(seed);
         this.rngPool = new int[6000];
         lcg.randomNumbers(this.rngPool, 6000);
         this.rngIdx = 1;
@@ -415,6 +417,10 @@ public class Map {
 
     private long cross(long dx, long dy, long px, long py) {
         return dx * py - dy * px;
+    }
+
+    public int getSeed() {
+        return seed;
     }
 
     public List<int[]> getCenterline() {
