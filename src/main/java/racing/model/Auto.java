@@ -64,8 +64,12 @@ public class Auto implements Datenelement {
             nitroLadungTicks--;
         }
 
-        if (v_x > maxSpeed) v_x = maxSpeed;
-        if (v_y > maxSpeed) v_y = maxSpeed;
+        // gesamtgeschwindigkeit begrenzen (nich pro achse, sonst diagonal schneller)
+        double speed = Math.sqrt(v_x * v_x + v_y * v_y);
+        if (speed > maxSpeed) {
+            v_x = v_x / speed * maxSpeed;
+            v_y = v_y / speed * maxSpeed;
+        }
         x += v_x;
         y += v_y;
 

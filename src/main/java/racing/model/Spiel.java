@@ -107,9 +107,16 @@ public class Spiel implements Runnable {
         platziereNitros();
     }
 
-    // seed in [1, 65536], sonst overflow im LCG (multiplikation) -> kaputte map
+    // seed in [1, 65536], den der spieler noch nicht hatte
     public int erzeugeSeed() {
-        return 1 + (int) Math.floorMod(System.nanoTime(), 65536L);
+        java.util.Set<Integer> gespielt = datenbank.ladeSeedsVon(spielerName);
+        int seed = 1 + (int) Math.floorMod(System.nanoTime(), 65536L);
+        int versuche = 0;
+        while (gespielt.contains(seed) && versuche < 65536) {
+            seed = 1 + (seed % 65536); // naechster seed, wrappt bei 65536 zu 1
+            versuche++;
+        }
+        return seed;
     }
 
     public int gibAktuellenSeed() {

@@ -427,6 +427,9 @@ public class Map {
         return centerline;
     }
 
+    // fahrbahn-halbbreite inkl. border (30 asphalt + 8 border), passt zur sichtbaren strecke
+    private static final double FAHRBAHN_RAND = TRACK_WIDTH / 2.0 + 8.0;
+
     public double distanceToTrack(double x, double y) {
         // abstand zum naechsten SEGMENT (nicht nur punkt), passt zum gezeichneten band
         double minDist = Double.MAX_VALUE;
@@ -437,7 +440,7 @@ public class Map {
             double d = distanzPunktZuSegment(x, y, a[0], a[1], b[0], b[1]);
             if (d < minDist) minDist = d;
         }
-        return Math.max(0.0, minDist - TRACK_WIDTH / 2.0);
+        return Math.max(0.0, minDist - FAHRBAHN_RAND);
     }
 
     // kuerzester abstand von punkt (px,py) zur strecke a-b
