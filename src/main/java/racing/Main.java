@@ -1,13 +1,15 @@
 package racing;
 
-import java.util.ArrayList;
-import java.util.List;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import racing.controller.Kontrolleur;
+import racing.datastructure.Knoten;
+import racing.datastructure.Liste;
+import racing.datastructure.Listenelement;
 import racing.model.Spiel;
 import racing.model.SpielstandEintrag;
+import racing.view.LeaderboardZeile;
 import racing.view.Oberflaeche;
 
 public class Main extends Application {
@@ -48,17 +50,19 @@ public class Main extends Application {
         });
         // leaderboard: eintraege in text-zeilen + seeds umbauen
         oberflaeche.setzeLeaderboardAktion(() -> {
-            List<SpielstandEintrag> eintraege = spiel.gibLeaderboardEintraege();
-            List<String> zeilen = new ArrayList<>();
-            List<Integer> seeds = new ArrayList<>();
+            Liste eintraege = spiel.gibLeaderboardEintraege();
+            Liste zeilen = new Liste();
+            Listenelement el = eintraege.gibAnfang();
             int platz = 1;
-            for (SpielstandEintrag e : eintraege) {
-                zeilen.add(platz + ". " + e.gibSpielerName() + "   " + e.gibPunkte()
-                    + " P   " + (e.gibZeitMs() / 1000.0) + " s   [seed " + e.gibSeed() + "]");
-                seeds.add(e.gibSeed());
+            while (!el.istAbschluss()) {
+                SpielstandEintrag e = (SpielstandEintrag) ((Knoten) el).gebeDaten();
+                String text = platz + ". " + e.gibSpielerName() + "   " + e.gibPunkte()
+                    + " P   " + (e.gibZeitMs() / 1000.0) + " s   [seed " + e.gibSeed() + "]";
+                zeilen.fuegeHintenEin(new LeaderboardZeile(text, e.gibSeed()));
                 platz++;
+                el = ((Knoten) el).gebeNachfolger();
             }
-            oberflaeche.zeigeLeaderboard(zeilen, seeds);
+            oberflaeche.zeigeLeaderboard(zeilen);
         });
         // klick auf leaderboard-eintrag = dieses level (seed) spielen
         oberflaeche.setzeSeedAktion(seed -> {

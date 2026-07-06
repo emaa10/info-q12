@@ -1,7 +1,6 @@
 package racing.view;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.function.IntConsumer;
 import javafx.application.Platform;
@@ -21,6 +20,9 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import racing.datastructure.Knoten;
+import racing.datastructure.Liste;
+import racing.datastructure.Listenelement;
 
 // view-teil im MVC
 public class Oberflaeche {
@@ -179,22 +181,25 @@ public class Oberflaeche {
     }
 
     // je zeile ein button, klick spielt den seed
-    public void zeigeLeaderboard(List<String> zeilen, List<Integer> seeds) {
+    public void zeigeLeaderboard(Liste zeilen) {
         leaderboardZeilen.getChildren().clear();
-        if (zeilen.isEmpty()) {
+        if (zeilen.istLeer()) {
             Label leer = new Label("noch keine eintraege");
             leer.setStyle("-fx-text-fill: #6b7488; -fx-font-family: Monospace; -fx-font-size: 15px;");
             leaderboardZeilen.getChildren().add(leer);
         } else {
-            for (int i = 0; i < zeilen.size(); i++) {
-                int seed = seeds.get(i);
-                Button b = new Button(zeilen.get(i));
+            Listenelement el = zeilen.gibAnfang();
+            while (!el.istAbschluss()) {
+                LeaderboardZeile zeile = (LeaderboardZeile) ((Knoten) el).gebeDaten();
+                int seed = zeile.gibSeed();
+                Button b = new Button(zeile.gibText());
                 b.getStyleClass().add("eintrag");
                 b.setPrefWidth(460);
                 b.setOnAction(e -> {
                     if (seedAktion != null) seedAktion.accept(seed);
                 });
                 leaderboardZeilen.getChildren().add(b);
+                el = ((Knoten) el).gebeNachfolger();
             }
         }
         hauptmenuPanel.setVisible(false);

@@ -176,15 +176,8 @@ public class Spiel implements Runnable {
     }
 
     // top10 aus der db (main baut daraus die menü-zeilen)
-    public List<SpielstandEintrag> gibLeaderboardEintraege() {
-        List<SpielstandEintrag> liste = new java.util.ArrayList<>();
-        Liste top = datenbank.ladeTopGlobal();
-        Listenelement el = top.gibAnfang();
-        while (!el.istAbschluss()) {
-            liste.add((SpielstandEintrag) ((Knoten) el).gebeDaten());
-            el = ((Knoten) el).gebeNachfolger();
-        }
-        return liste;
+    public Liste gibLeaderboardEintraege() {
+        return datenbank.ladeTopGlobal();
     }
 
     // game loop ihr deutschen
