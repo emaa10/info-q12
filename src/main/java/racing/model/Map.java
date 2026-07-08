@@ -39,10 +39,12 @@ public class Map {
     private boolean[] onTrackGrid;
     private int[] rngPool;
     private int rngIdx;
+    private int seed;
 
-    public Map(racing.view.MapView mapView) {
+    public Map(racing.view.MapView mapView, int seed) {
         this.view = mapView;
-        LCG lcg = new LCG();
+        this.seed = seed;
+        LCG lcg = new LCG(seed);
         this.rngPool = new int[6000];
         lcg.randomNumbers(this.rngPool, 6000);
         this.rngIdx = 1;
@@ -417,19 +419,39 @@ public class Map {
         return dx * py - dy * px;
     }
 
+    public int getSeed() {
+        return seed;
+    }
+
     public List<int[]> getCenterline() {
         return centerline;
     }
 
+    // fahrbahn-halbbreite inkl. border (30 asphalt + 8 border), passt zur sichtbaren strecke
+    private static final double FAHRBAHN_RAND = TRACK_WIDTH / 2.0 + 8.0;
+
     public double distanceToTrack(double x, double y) {
+        // abstand zum naechsten SEGMENT (nicht nur punkt), passt zum gezeichneten band
         double minDist = Double.MAX_VALUE;
-        for (int[] pt : centerline) {
-            double dx = pt[0] - x;
-            double dy = pt[1] - y;
-            double d = Math.sqrt(dx * dx + dy * dy);
+        int n = centerline.size();
+        for (int i = 0; i < n; i++) {
+            int[] a = centerline.get(i);
+            int[] b = centerline.get((i + 1) % n);
+            double d = distanzPunktZuSegment(x, y, a[0], a[1], b[0], b[1]);
             if (d < minDist) minDist = d;
         }
-        return Math.max(0.0, minDist - TRACK_WIDTH / 2.0);
+        return Math.max(0.0, minDist - FAHRBAHN_RAND);
+    }
+
+    // kuerzester abstand von punkt (px,py) zur strecke a-b
+    private double distanzPunktZuSegment(double px, double py, double ax, double ay, double bx, double by) {
+        double dx = bx - ax, dy = by - ay;
+        double laengeSq = dx * dx + dy * dy;
+        double t = laengeSq == 0 ? 0 : ((px - ax) * dx + (py - ay) * dy) / laengeSq;
+        t = Math.max(0, Math.min(1, t));
+        double projX = ax + t * dx, projY = ay + t * dy;
+        double ex = px - projX, ey = py - projY;
+        return Math.sqrt(ex * ex + ey * ey);
     }
 
     public void draw() {

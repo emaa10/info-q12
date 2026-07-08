@@ -35,7 +35,7 @@ public class Kontrolleur implements Runnable {
     }
 
     public void pruefeEingabe() {
-        if (!spiel.istRennenGestartet()) return;
+        if (!spiel.istRennenGestartet() || spiel.istPausiert()) return;
 
         Set<KeyCode> tasten = oberflaeche.gibGedrueckteTasten();
         boolean nitroGedrueckt = tasten.contains(KeyCode.N) ||

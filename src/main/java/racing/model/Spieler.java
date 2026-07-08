@@ -14,6 +14,10 @@ public class Spieler {
         return name;
     }
 
+    public void setzeName(String name) {
+        this.name = name;
+    }
+
     public Auto gibAuto() {
         return auto;
     }

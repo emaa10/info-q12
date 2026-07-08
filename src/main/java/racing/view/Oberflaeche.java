@@ -2,17 +2,27 @@ package racing.view;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.IntConsumer;
 import javafx.application.Platform;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.geometry.Pos;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import racing.datastructure.Knoten;
+import racing.datastructure.Liste;
+import racing.datastructure.Listenelement;
 
 // view-teil im MVC
 public class Oberflaeche {
@@ -20,7 +30,13 @@ public class Oberflaeche {
     private static final int BREITE = 960;
     private static final int HOEHE = 600;
 
-    private final Pane wurzel;
+    // wurzel stapelt die ebenen uebereinander (erstes kind unten)
+    private final StackPane wurzel;
+    private final Pane spielEbene;      // canvas / rennen
+    private final StackPane menueEbene; // menü drueber, per setVisible an/aus
+    private final VBox hauptmenuPanel;
+    private final VBox leaderboardPanel;
+    private final VBox leaderboardZeilen; // hier kommen die eintraege rein
     private final Canvas leinwand;
     private final GraphicsContext gc;
     private final Image baumBild;
@@ -31,11 +47,40 @@ public class Oberflaeche {
 
     private final Set<KeyCode> gedrueckteTasten = new HashSet<>();
 
+    // callbacks, damit view das spiel nich direkt kennt (mvc)
+    private Runnable startAktion;
+    private Runnable pauseAktion;
+    private Runnable leaderboardAktion;
+    private Runnable fortsetzenAktion;
+    private IntConsumer seedAktion; // klick auf leaderboard-eintrag -> seed spielen
+
+    private TextField nameFeld;
+    private Button fortsetzenKnopf; // nur sichtbar wenn pausiert
+
     public Oberflaeche() {
         this.leinwand = new Canvas(BREITE, HOEHE);
         this.gc = leinwand.getGraphicsContext2D();
-        this.wurzel = new Pane(leinwand);
-        this.wurzel.setStyle("-fx-background-color: white;");
+        this.spielEbene = new Pane(leinwand);
+
+        // menü ebene: container fuer die einzelnen panels
+        this.hauptmenuPanel = new VBox(24);
+        this.hauptmenuPanel.setAlignment(Pos.CENTER);
+        this.hauptmenuPanel.getStyleClass().add("panel");
+        this.leaderboardPanel = new VBox(16);
+        this.leaderboardPanel.setAlignment(Pos.CENTER);
+        this.leaderboardPanel.getStyleClass().add("panel");
+        this.leaderboardZeilen = new VBox(6);
+        this.leaderboardZeilen.setAlignment(Pos.CENTER);
+
+        this.menueEbene = new StackPane(hauptmenuPanel, leaderboardPanel);
+        this.menueEbene.getStyleClass().add("menue-ebene");
+
+        baueHauptmenue();
+        baueLeaderboard();
+        zeigeHauptmenue();
+
+        this.wurzel = new StackPane(spielEbene, menueEbene);
+
         this.baumBild = new Image(
             getClass().getResourceAsStream("/images/tree.png")
         );
@@ -51,6 +96,132 @@ public class Oberflaeche {
         this.mapView = new MapView(this.gc);
     }
 
+    // titel + name feld + buttons
+    private void baueHauptmenue() {
+        Label titel = new Label("RACING GAME");
+        titel.getStyleClass().add("titel");
+
+        nameFeld = new TextField();
+        nameFeld.setPromptText("Dein Name");
+        nameFeld.setMaxWidth(240);
+        nameFeld.getStyleClass().add("name-feld");
+
+        fortsetzenKnopf = new Button("Fortsetzen");
+        Button startKnopf = new Button("Spiel starten");
+        Button leaderboardKnopf = new Button("Leaderboard");
+        Button beendenKnopf = new Button("Beenden");
+
+        for (Button b : new Button[] { fortsetzenKnopf, startKnopf, leaderboardKnopf, beendenKnopf }) {
+            b.setPrefWidth(240);
+            b.getStyleClass().add("menue-button");
+        }
+        startKnopf.getStyleClass().add("start-button");
+
+        // fortsetzen anfangs versteckt (gibt noch nix zum fortsetzen)
+        fortsetzenKnopf.setVisible(false);
+        fortsetzenKnopf.setManaged(false);
+
+        // klick feuert auch bei enter/space, macht javafx selbst
+        fortsetzenKnopf.setOnAction(e -> {
+            if (fortsetzenAktion != null) fortsetzenAktion.run();
+        });
+        startKnopf.setOnAction(e -> {
+            if (startAktion != null) startAktion.run();
+        });
+        leaderboardKnopf.setOnAction(e -> {
+            if (leaderboardAktion != null) leaderboardAktion.run();
+        });
+        beendenKnopf.setOnAction(e -> Platform.exit());
+
+        hauptmenuPanel.getChildren().addAll(titel, fortsetzenKnopf, nameFeld, startKnopf, leaderboardKnopf, beendenKnopf);
+    }
+
+    // leaderboard: titel, zeilen-container, zurueck
+    private void baueLeaderboard() {
+        Label titel = new Label("LEADERBOARD");
+        titel.getStyleClass().add("untertitel");
+
+        Button zurueck = new Button("Zurueck");
+        zurueck.setPrefWidth(240);
+        zurueck.getStyleClass().add("menue-button");
+        zurueck.setOnAction(e -> zeigeHauptmenue());
+
+        leaderboardPanel.getChildren().addAll(titel, leaderboardZeilen, zurueck);
+    }
+
+    public String gibSpielerName() {
+        String name = nameFeld.getText().trim();
+        return name.isEmpty() ? "Spieler 1" : name;
+    }
+
+    public void setzeStartAktion(Runnable startAktion) {
+        this.startAktion = startAktion;
+    }
+
+    public void setzePauseAktion(Runnable pauseAktion) {
+        this.pauseAktion = pauseAktion;
+    }
+
+    public void setzeLeaderboardAktion(Runnable leaderboardAktion) {
+        this.leaderboardAktion = leaderboardAktion;
+    }
+
+    public void setzeFortsetzenAktion(Runnable fortsetzenAktion) {
+        this.fortsetzenAktion = fortsetzenAktion;
+    }
+
+    public void setzeSeedAktion(IntConsumer seedAktion) {
+        this.seedAktion = seedAktion;
+    }
+
+    // fortsetzen-knopf an/aus (an wenn ein spiel pausiert ist)
+    public void setzeFortsetzenSichtbar(boolean sichtbar) {
+        fortsetzenKnopf.setVisible(sichtbar);
+        fortsetzenKnopf.setManaged(sichtbar);
+    }
+
+    // je zeile ein button, klick spielt den seed
+    public void zeigeLeaderboard(Liste zeilen) {
+        leaderboardZeilen.getChildren().clear();
+        if (zeilen.istLeer()) {
+            Label leer = new Label("noch keine eintraege");
+            leer.setStyle("-fx-text-fill: #6b7488; -fx-font-family: Monospace; -fx-font-size: 15px;");
+            leaderboardZeilen.getChildren().add(leer);
+        } else {
+            Listenelement el = zeilen.gibAnfang();
+            while (!el.istAbschluss()) {
+                LeaderboardZeile zeile = (LeaderboardZeile) ((Knoten) el).gebeDaten();
+                int seed = zeile.gibSeed();
+                Button b = new Button(zeile.gibText());
+                b.getStyleClass().add("eintrag");
+                b.setPrefWidth(460);
+                b.setOnAction(e -> {
+                    if (seedAktion != null) seedAktion.accept(seed);
+                });
+                leaderboardZeilen.getChildren().add(b);
+                el = ((Knoten) el).gebeNachfolger();
+            }
+        }
+        hauptmenuPanel.setVisible(false);
+        leaderboardPanel.setVisible(true);
+    }
+
+    public void zeigeHauptmenue() {
+        leaderboardPanel.setVisible(false);
+        hauptmenuPanel.setVisible(true);
+    }
+
+    // menü an, spiel dahinter versteckt
+    public void zeigeMenue() {
+        zeigeHauptmenue();
+        menueEbene.setVisible(true);
+    }
+
+    // menü aus, canvas sichtbar
+    public void zeigeSpiel() {
+        menueEbene.setVisible(false);
+    }
+
     public Parent gibWurzel() {
         return wurzel;
     }
@@ -59,9 +230,19 @@ public class Oberflaeche {
         return this.mapView;
     }
 
-    // Muss nach Scene-Erstellung aufgerufen werden
+    // nach scene-erstellung aufrufen
     public void registriereEingabe(Scene szene) {
-        szene.setOnKeyPressed(e -> gedrueckteTasten.add(e.getCode()));
+        szene.setOnKeyPressed(e -> {
+            // esc im rennen -> pause menü
+            if (e.getCode() == KeyCode.ESCAPE) {
+                if (!menueEbene.isVisible() && pauseAktion != null) {
+                    gedrueckteTasten.clear(); // sonst haengt ne taste
+                    pauseAktion.run();
+                }
+                return;
+            }
+            gedrueckteTasten.add(e.getCode());
+        });
         szene.setOnKeyReleased(e -> gedrueckteTasten.remove(e.getCode()));
     }
 
@@ -165,9 +346,17 @@ public class Oberflaeche {
         int kollisionen,
         int letzterScore,
         String nitroStatus,
-        double nitroFortschritt
+        double nitroFortschritt,
+        int seed
     ) {
         Platform.runLater(() -> {
+            // seed oben links anzeigen
+            gc.setFill(Color.rgb(0, 0, 0, 0.55));
+            gc.fillRoundRect(12, 12, 190, 26, 8, 8);
+            gc.setFill(Color.WHITE);
+            gc.setFont(Font.font("Monospace", FontWeight.BOLD, 13));
+            gc.fillText("Seed: " + seed, 22, 30);
+
             // warnung wenn man von der strecke fährt
             if (!aufStrecke) {
                 gc.setFill(Color.rgb(200, 0, 0, 0.85));

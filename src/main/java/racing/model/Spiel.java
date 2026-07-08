@@ -3,6 +3,7 @@ package racing.model;
 import java.util.List;
 
 import racing.datastructure.Knoten;
+import racing.datastructure.Liste;
 import racing.datastructure.Listenelement;
 import racing.view.Oberflaeche;
 
@@ -15,6 +16,14 @@ public class Spiel implements Runnable {
     private Oberflaeche oberflaeche;
 
     private volatile boolean laeuft;
+    private volatile boolean pausiert = false;
+    private long pauseBeginn = -1;
+
+    private int aktuellerSeed;
+    private String spielerName = "Spieler 1";
+    // neustart wird vom menü angefordert, aber im gamethread ausgefuehrt (thread-safe)
+    private volatile boolean neustartAngefordert = false;
+    private volatile int neustartSeed;
 
     private double[] startLinieA;
     private double[] startLinieB;
@@ -41,7 +50,16 @@ public class Spiel implements Runnable {
         this.oberflaeche.loesche();
         this.datenbank = new Datenbank();
         this.datenbank.verbinde();
-        this.level = new Level(new Map(this.oberflaeche.getMapView()));
+        initialisiereLevel(erzeugeSeed());
+    }
+
+    // baut map/level/auto neu auf und setzt alle renn-zustaende zurueck
+    private void initialisiereLevel(int seed) {
+        // seed in [1, 65536] bringen (laesst gueltige seeds unveraendert), sonst LCG-overflow
+        seed = 1 + Math.floorMod(seed - 1, 65536);
+        this.aktuellerSeed = seed;
+        this.oberflaeche.loesche();
+        this.level = new Level(new Map(this.oberflaeche.getMapView(), seed));
 
         Map map = this.level.gibMap();
         this.startLinieA = map.getStartLinieA();
@@ -56,18 +74,25 @@ public class Spiel implements Runnable {
         double autoX = startPt[0] - startLinieTangent[0] * START_ABSTAND;
         double autoY = startPt[1] - startLinieTangent[1] * START_ABSTAND;
         Auto auto = new Auto(autoX, autoY, startAngle);
-        this.spieler = new Spieler[] { new Spieler("Spieler 1", auto) };
+        this.spieler = new Spieler[] { new Spieler(spielerName, auto) };
+
+        // zustand zuruecksetzen
+        this.naechsterCheckpoint = 0;
+        this.lapStartZeit = -1;
+        this.lapZaehler = 0;
+        this.besteRunde = -1;
+        this.kreuzungsCooldown = 300;
+        this.aufStrecke = true;
+        this.letzterScore = 0;
+        this.countdownStartZeit = -1;
+        this.pausiert = false;
+        this.pauseBeginn = -1;
+
+        platziereBaeumeUndNitros();
     }
 
-    @Override
-    public void run() {
-        laeuft = true;
-        countdownStartZeit = System.currentTimeMillis();
-        spieleKreis();
-    }
-
-    // game loop ihr deutschen
-    public void spieleKreis() {
+    // baeume an feste ecken, nitros auf die strecke
+    private void platziereBaeumeUndNitros() {
         Map map = this.level.gibMap();
         int x = 150, y = 80;
         while (map.distanceToTrack(x, y) < 120) y += 10;
@@ -79,9 +104,104 @@ public class Spiel implements Runnable {
         while (map.distanceToTrack(x, y) < 120) y -= 10;
         level.platziereGegenstand(new Baum(), x, y);
         platziereNitros();
+    }
 
+    // seed in [1, 65536], den der spieler noch nicht hatte
+    public int erzeugeSeed() {
+        java.util.Set<Integer> gespielt = datenbank.ladeSeedsVon(spielerName);
+        int seed = 1 + (int) Math.floorMod(System.nanoTime(), 65536L);
+        int versuche = 0;
+        while (gespielt.contains(seed) && versuche < 65536) {
+            seed = 1 + (seed % 65536); // naechster seed, wrappt bei 65536 zu 1
+            versuche++;
+        }
+        return seed;
+    }
+
+    public int gibAktuellenSeed() {
+        return aktuellerSeed;
+    }
+
+    // vom menü (fx-thread): neues spiel mit diesem seed. gamethread macht den rest
+    public void neuesSpielMitSeed(int seed) {
+        neustartSeed = seed;
+        neustartAngefordert = true;
+        pausiert = false;
+    }
+
+    @Override
+    public void run() {
+        laeuft = true;
+        // countdown erst bei starteRennen(), nich automatisch
+        spieleKreis();
+    }
+
+    // start-button im menü -> countdown laeuft los
+    public void starteRennen() {
+        countdownStartZeit = System.currentTimeMillis();
+    }
+
+    // schon mal gestartet? (fuer fortsetzen nach pause)
+    public boolean istGestartet() {
+        return countdownStartZeit >= 0;
+    }
+
+    public void pausiere() {
+        if (!pausiert) {
+            pausiert = true;
+            pauseBeginn = System.currentTimeMillis();
+        }
+    }
+
+    public void fortsetzen() {
+        if (pausiert) {
+            pausiert = false;
+            // zeitstempel um die pausendauer verschieben, sonst laeuft die uhr weiter
+            long dauer = System.currentTimeMillis() - pauseBeginn;
+            if (lapStartZeit >= 0) lapStartZeit += dauer;
+            if (countdownStartZeit >= 0) countdownStartZeit += dauer;
+            pauseBeginn = -1;
+        }
+    }
+
+    public boolean istPausiert() {
+        return pausiert;
+    }
+
+    public void setzeSpielerName(String name) {
+        this.spielerName = name;
+        if (spieler != null && spieler.length > 0) {
+            spieler[0].setzeName(name);
+        }
+    }
+
+    // top10 aus der db (main baut daraus die menü-zeilen)
+    public Liste gibLeaderboardEintraege() {
+        return datenbank.ladeTopGlobal();
+    }
+
+    // game loop ihr deutschen
+    public void spieleKreis() {
         // Spielschleife
         while (laeuft) {
+            // neustart mit neuem seed, im gamethread damit thread-safe
+            if (neustartAngefordert) {
+                neustartAngefordert = false;
+                initialisiereLevel(neustartSeed);
+                starteRennen();
+                continue;
+            }
+            // pause -> nix simulieren, bild bleibt stehen
+            if (pausiert) {
+                try {
+                    Thread.sleep(16);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    laeuft = false;
+                }
+                continue;
+            }
+
             for (Spieler s : spieler) {
                 Auto a = s.gibAuto();
                 a.itr();
@@ -177,6 +297,10 @@ public class Spiel implements Runnable {
                             );
                             a.resetKollisionen();
                             lapStartZeit = jetzt;
+                            // score + seed in die db fuers leaderboard
+                            datenbank.speichereSpielstand(s.gibName(), aktuellerSeed, letzterScore, lapZeit);
+                            // runde durch -> nitros wieder auffuellen
+                            erneuereNitros();
                         }
                         naechsterCheckpoint = 0;
                         kreuzungsCooldown = 180;
@@ -239,7 +363,8 @@ public class Spiel implements Runnable {
                 kollisionen,
                 letzterScore,
                 hudAuto.gibNitroStatus(),
-                hudAuto.gibNitroFortschritt()
+                hudAuto.gibNitroFortschritt(),
+                aktuellerSeed
             );
             String countdownText = gibCountdownText();
             if (countdownText != null) {
@@ -274,6 +399,22 @@ public class Spiel implements Runnable {
         if (vergangen < COUNTDOWN_DAUER_MS) return "1";
         if (vergangen < COUNTDOWN_DAUER_MS + GO_ANZEIGE_DAUER_MS) return "GO";
         return null;
+    }
+
+    // alte nitros raus, neue rein (pool nutzt die alten wieder)
+    private void erneuereNitros() {
+        // erst sammeln, dann entfernen (nich waehrend iteration loeschen)
+        List<Gegenstand> zuEntfernen = new java.util.ArrayList<>();
+        Listenelement el = level.gibGegenstaende().gibAnfang();
+        while (!el.istAbschluss()) {
+            Gegenstand g = (Gegenstand) ((Knoten) el).gebeDaten();
+            if (g instanceof Nitro) zuEntfernen.add(g);
+            el = ((Knoten) el).gebeNachfolger();
+        }
+        for (Gegenstand g : zuEntfernen) {
+            level.entferneGegenstand(g);
+        }
+        platziereNitros();
     }
 
     private void platziereNitros() {
