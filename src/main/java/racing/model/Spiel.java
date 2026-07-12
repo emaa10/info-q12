@@ -238,6 +238,14 @@ public class Spiel implements Runnable {
                             break;
                         }
                     }
+                } else if (g instanceof Hase) {
+                    Hase hase = (Hase) g;
+                    for (Spieler s : spieler) {
+                        Auto a = s.gibAuto();
+                        if (hase.kollidiertMit((int) a.gibX(), (int) a.gibY())) {
+                            a.kollision();
+                        }
+                    }
                 }
                 elKollision = ((Knoten) elKollision).gebeNachfolger();
             }
