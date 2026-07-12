@@ -97,26 +97,19 @@ public class Spiel implements Runnable {
     // baeume an feste ecken, nitros auf die strecke
     private void platziereBaeumeUndNitros() {
         Map map = this.level.gibMap();
-        int[][] baumPos = {
-            { 60, 60 }, { 150, 80 }, { 300, 60 }, { 450, 80 },
-            { 600, 60 }, { 750, 80 }, { 870, 60 },
-            { 60, 520 }, { 150, 500 }, { 300, 520 }, { 450, 500 },
-            { 600, 520 }, { 750, 500 }, { 870, 520 },
-            { 60, 300 }, { 870, 300 },
-            { 480, 60 }, { 480, 520 }
-        };
-        for (int[] p : baumPos) {
-            int x = p[0], y = p[1];
-            if (x < 0) x = 0;
-            if (x > 920) x = 920;
-            if (y < 0) y = 0;
-            if (y > 560) y = 560;
-            while (y > 0 && y < 560 && map.distanceToTrack(x, y) < 120) {
-                y += 10;
-            }
-            if (y >= 0 && y <= 560) {
-                level.platziereGegenstand(new Baum(), x, y);
-            }
+        int[] reihenX = { 30, 130, 230, 330, 430, 530, 630, 730, 830 };
+        for (int x : reihenX) {
+            int y = 20;
+            if (map.distanceToTrack(x, y) >= 100) level.platziereGegenstand(new Baum(), x, y);
+            y = 470;
+            if (map.distanceToTrack(x, y) >= 100) level.platziereGegenstand(new Baum(), x, y);
+        }
+        int[] reihenY = { 30, 130, 230, 330, 430 };
+        for (int y : reihenY) {
+            int x = 20;
+            if (map.distanceToTrack(x, y) >= 100) level.platziereGegenstand(new Baum(), x, y);
+            x = 840;
+            if (map.distanceToTrack(x, y) >= 100) level.platziereGegenstand(new Baum(), x, y);
         }
         platziereNitros();
     }
