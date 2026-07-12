@@ -6,6 +6,7 @@ import racing.datastructure.Knoten;
 import racing.datastructure.Liste;
 import racing.datastructure.Listenelement;
 import racing.view.Oberflaeche;
+import racing.model.Hase;
 
 // model-teil
 public class Spiel implements Runnable {
@@ -40,6 +41,7 @@ public class Spiel implements Runnable {
 
     private static final int CHECKPOINT_ANZAHL = 8;
     private static final int NITRO_ANZAHL = 4;
+    private static final int HASE_Y = 300;
     private static final double STRECKEN_TOLERANZ = 38.0;
     private static final double START_ABSTAND = 45.0;
     private static final long COUNTDOWN_DAUER_MS = 3000;
@@ -89,6 +91,7 @@ public class Spiel implements Runnable {
         this.pauseBeginn = -1;
 
         platziereBaeumeUndNitros();
+        platziereHase();
     }
 
     // baeume an feste ecken, nitros auf die strecke
@@ -239,6 +242,22 @@ public class Spiel implements Runnable {
                 elKollision = ((Knoten) elKollision).gebeNachfolger();
             }
 
+            Listenelement elHase = level.gibGegenstaende().gibAnfang();
+            while (!elHase.istAbschluss()) {
+                Gegenstand g = (Gegenstand) ((Knoten) elHase).gebeDaten();
+                if (g instanceof Hase) {
+                    Hase hase = (Hase) g;
+                    int[] pos = hase.gebePosition();
+                    hase.setzePosition(pos[0] + (int) Hase.GESCHWINDIGKEIT, pos[1]);
+                    if (pos[0] > 960) {
+                        level.entferneGegenstand(hase);
+                        platziereHase();
+                    }
+                    break;
+                }
+                elHase = ((Knoten) elHase).gebeNachfolger();
+            }
+
             for (Spieler s : spieler) {
                 Auto a = s.gibAuto();
                 aufStrecke = level
@@ -333,6 +352,8 @@ public class Spiel implements Runnable {
                     this.oberflaeche.baumZeichnen(pos[0], pos[1]);
                 } else if (g instanceof Nitro) {
                     this.oberflaeche.nitroZeichnen(pos[0], pos[1]);
+                } else if (g instanceof Hase) {
+                    this.oberflaeche.haseZeichnen(pos[0], pos[1]);
                 }
                 el = ((Knoten) el).gebeNachfolger();
             }
@@ -429,6 +450,10 @@ public class Spiel implements Runnable {
                 p[1] - Nitro.HOEHE / 2
             );
         }
+    }
+
+    private void platziereHase() {
+        level.platziereGegenstand(new Hase(), 0, HASE_Y);
     }
 
     public Spieler[] gibSpieler() {
