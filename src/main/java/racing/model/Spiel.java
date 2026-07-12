@@ -248,11 +248,16 @@ public class Spiel implements Runnable {
                 if (g instanceof Hase) {
                     Hase hase = (Hase) g;
                     int[] pos = hase.gebePosition();
-                    hase.setzePosition(pos[0] + (int) Hase.GESCHWINDIGKEIT, pos[1]);
-                    if (pos[0] > 960) {
-                        level.entferneGegenstand(hase);
-                        platziereHase();
+                    int nx = pos[0] + (int) Hase.GESCHWINDIGKEIT;
+                    int ny = pos[1];
+                    if (spieler.length > 0) {
+                        int autoY = (int) spieler[0].gibAuto().gibY();
+                        ny += (autoY - ny) / 30;
                     }
+                    if (nx > 960) {
+                        nx = 0;
+                    }
+                    hase.setzePosition(nx, ny);
                     break;
                 }
                 elHase = ((Knoten) elHase).gebeNachfolger();
