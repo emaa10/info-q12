@@ -291,10 +291,12 @@ public class Oberflaeche {
             gc.save();
             gc.translate(x, y);
             // -90° damit das hochkante Bild (Fahrtrichtung unten) bei winkel=0 nach rechts zeigt
-            gc.rotate(winkel - 90);
-            double w = 28;
-            double h = 56;
-            Image bild = spielerIndex == 1 ? autoBild2 : autoBild;
+            // auto_bmw.png hat die front oben im bild -> zusaetzlich 180° drehen
+            boolean istAuto2 = spielerIndex == 1;
+            gc.rotate(winkel - 90 + (istAuto2 ? 180 : 0));
+            double w = istAuto2 ? 34 : 28;
+            double h = istAuto2 ? 68 : 56;
+            Image bild = istAuto2 ? autoBild2 : autoBild;
             gc.drawImage(bild, -w / 2, -h / 2, w, h);
             gc.restore();
         });

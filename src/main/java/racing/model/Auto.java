@@ -101,12 +101,17 @@ public class Auto implements Datenelement {
         a_y -= a * Math.sin(rad);
     }
 
+    // lenkeinschlag skaliert mit tempo, sonst dreht sich das auto im stand auf der stelle
+    private static final double MIN_LENK_SPEED = 0.5;
+
     public void dreheLinks() {
-        winkel = (winkel - drehRate + 360) % 360;
+        double faktor = Math.min(1.0, getSpeed() / MIN_LENK_SPEED);
+        winkel = (winkel - drehRate * faktor + 360) % 360;
     }
 
     public void dreheRechts() {
-        winkel = (winkel + drehRate) % 360;
+        double faktor = Math.min(1.0, getSpeed() / MIN_LENK_SPEED);
+        winkel = (winkel + drehRate * faktor) % 360;
     }
 
     // Luftwiderstand: F_drag = 0.5 * Cv * A * rho_luft * v^2, wirkt immer entgegen der Fahrtrichtung

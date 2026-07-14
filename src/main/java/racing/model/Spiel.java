@@ -31,13 +31,6 @@ public class Spiel implements Runnable {
     private double[] startLinieB;
     private double[] startLinieTangent;
     private double[][] checkpoints;
-    private int naechsterCheckpoint = 0;
-    private long lapStartZeit = -1;
-    private int lapZaehler = 0;
-    private long besteRunde = -1;
-    private int kreuzungsCooldown = 300;
-    private boolean aufStrecke = true;
-    private int letzterScore = 0;
     private long countdownStartZeit = -1;
 
     private static final int CHECKPOINT_ANZAHL = 8;
@@ -97,14 +90,7 @@ public class Spiel implements Runnable {
             new Spieler(spielerName2, auto2),
         };
 
-        // zustand zuruecksetzen
-        this.naechsterCheckpoint = 0;
-        this.lapStartZeit = -1;
-        this.lapZaehler = 0;
-        this.besteRunde = -1;
-        this.kreuzungsCooldown = 300;
-        this.aufStrecke = true;
-        this.letzterScore = 0;
+        // zustand zuruecksetzen (rennfortschritt steckt in den frischen Spieler-objekten)
         this.countdownStartZeit = -1;
         this.pausiert = false;
         this.pauseBeginn = -1;
@@ -185,7 +171,9 @@ public class Spiel implements Runnable {
             pausiert = false;
             // zeitstempel um die pausendauer verschieben, sonst laeuft die uhr weiter
             long dauer = System.currentTimeMillis() - pauseBeginn;
-            if (lapStartZeit >= 0) lapStartZeit += dauer;
+            for (Spieler s : spieler) {
+                if (s.gibLapStartZeit() >= 0) s.setzeLapStartZeit(s.gibLapStartZeit() + dauer);
+            }
             if (countdownStartZeit >= 0) countdownStartZeit += dauer;
             pauseBeginn = -1;
         }
@@ -304,12 +292,13 @@ public class Spiel implements Runnable {
 
             for (Spieler s : spieler) {
                 Auto a = s.gibAuto();
-                aufStrecke = level
-                    .gibMap()
-                    .istNahAnStrecke(a.gibX(), a.gibY(), STRECKEN_TOLERANZ);
+                s.setzeAufStrecke(
+                    level.gibMap().istNahAnStrecke(a.gibX(), a.gibY(), STRECKEN_TOLERANZ)
+                );
 
-                if (naechsterCheckpoint < checkpoints.length) {
-                    double[] cp = checkpoints[naechsterCheckpoint];
+                int naechsterCp = s.gibNaechsterCheckpoint();
+                if (naechsterCp < checkpoints.length) {
+                    double[] cp = checkpoints[naechsterCp];
                     if (
                         a.prüfeLapCrossing(
                             cp[0],
@@ -321,53 +310,51 @@ public class Spiel implements Runnable {
                             false
                         )
                     ) {
-                        naechsterCheckpoint++;
+                        s.setzeNaechsterCheckpoint(naechsterCp + 1);
                     }
                 }
-            }
 
-            if (kreuzungsCooldown > 0) {
-                kreuzungsCooldown--;
-            } else {
-                for (Spieler s : spieler) {
-                    Auto a = s.gibAuto();
-                    if (
-                        a.prüfeLapCrossing(
-                            startLinieA[0],
-                            startLinieA[1],
-                            startLinieB[0],
-                            startLinieB[1],
-                            startLinieTangent[0],
-                            startLinieTangent[1],
-                            true
-                        )
-                    ) {
-                        long jetzt = System.currentTimeMillis();
-                        if (lapStartZeit < 0) {
-                            lapStartZeit = jetzt;
-                        } else if (naechsterCheckpoint == checkpoints.length) {
-                            long lapZeit = jetzt - lapStartZeit;
-                            lapZaehler++;
-                            if (
-                                besteRunde < 0 || lapZeit < besteRunde
-                            ) besteRunde = lapZeit;
-                            int kollisionen = a.gibKollisionen();
-                            letzterScore = Math.max(
-                                0,
-                                10000 -
-                                    (int) (lapZeit / 100) -
-                                    kollisionen * 500
-                            );
-                            a.resetKollisionen();
-                            lapStartZeit = jetzt;
-                            // score + seed in die db fuers leaderboard
-                            datenbank.speichereSpielstand(s.gibName(), aktuellerSeed, letzterScore, lapZeit);
-                            // runde durch -> nitros wieder auffuellen
-                            erneuereNitros();
-                        }
-                        naechsterCheckpoint = 0;
-                        kreuzungsCooldown = 180;
+                int cooldown = s.gibKreuzungsCooldown();
+                if (cooldown > 0) {
+                    s.setzeKreuzungsCooldown(cooldown - 1);
+                    continue;
+                }
+
+                if (
+                    a.prüfeLapCrossing(
+                        startLinieA[0],
+                        startLinieA[1],
+                        startLinieB[0],
+                        startLinieB[1],
+                        startLinieTangent[0],
+                        startLinieTangent[1],
+                        true
+                    )
+                ) {
+                    long jetzt = System.currentTimeMillis();
+                    long lapStart = s.gibLapStartZeit();
+                    if (lapStart < 0) {
+                        s.setzeLapStartZeit(jetzt);
+                    } else if (s.gibNaechsterCheckpoint() == checkpoints.length) {
+                        long lapZeit = jetzt - lapStart;
+                        s.erhoeheLapZaehler();
+                        long beste = s.gibBesteRunde();
+                        if (beste < 0 || lapZeit < beste) s.setzeBesteRunde(lapZeit);
+                        int kollisionen = a.gibKollisionen();
+                        int score = Math.max(
+                            0,
+                            10000 - (int) (lapZeit / 100) - kollisionen * 500
+                        );
+                        s.setzeLetzterScore(score);
+                        a.resetKollisionen();
+                        s.setzeLapStartZeit(jetzt);
+                        // score + seed in die db fuers leaderboard
+                        datenbank.speichereSpielstand(s.gibName(), aktuellerSeed, score, lapZeit);
+                        // runde durch -> nitros wieder auffuellen
+                        erneuereNitros();
                     }
+                    s.setzeNaechsterCheckpoint(0);
+                    s.setzeKreuzungsCooldown(180);
                 }
             }
 
@@ -377,14 +364,16 @@ public class Spiel implements Runnable {
             // Track neu zeichnen (MapView übernimmt die komplette Streckenlogik)
             this.level.gibMap().draw();
 
-            for (int i = naechsterCheckpoint; i < checkpoints.length; i++) {
+            // checkpoint-anzeige orientiert sich am fortschritt von spieler 1
+            int anzeigeCheckpoint = spieler[0].gibNaechsterCheckpoint();
+            for (int i = anzeigeCheckpoint; i < checkpoints.length; i++) {
                 double[] cp = checkpoints[i];
                 this.oberflaeche.checkpointZeichnen(
                     cp[0],
                     cp[1],
                     cp[2],
                     cp[3],
-                    i == naechsterCheckpoint
+                    i == anzeigeCheckpoint
                 );
             }
 
@@ -413,21 +402,22 @@ public class Spiel implements Runnable {
                 );
             }
 
+            Spieler s0 = spieler[0];
             long aktuelleZeit =
-                lapStartZeit < 0
+                s0.gibLapStartZeit() < 0
                     ? 0
-                    : System.currentTimeMillis() - lapStartZeit;
-            int kollisionen = spieler[0].gibAuto().gibKollisionen();
-            Auto hudAuto = spieler[0].gibAuto();
+                    : System.currentTimeMillis() - s0.gibLapStartZeit();
+            int kollisionen = s0.gibAuto().gibKollisionen();
+            Auto hudAuto = s0.gibAuto();
             this.oberflaeche.hudZeichnen(
-                lapZaehler,
+                s0.gibLapZaehler(),
                 aktuelleZeit,
-                besteRunde,
-                aufStrecke,
-                naechsterCheckpoint,
+                s0.gibBesteRunde(),
+                s0.istAufStrecke(),
+                s0.gibNaechsterCheckpoint(),
                 checkpoints.length,
                 kollisionen,
-                letzterScore,
+                s0.gibLetzterScore(),
                 hudAuto.gibNitroStatus(),
                 hudAuto.gibNitroFortschritt(),
                 aktuellerSeed
