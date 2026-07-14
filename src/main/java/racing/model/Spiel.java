@@ -38,6 +38,7 @@ public class Spiel implements Runnable {
     private static final int HASE_Y = 300;
     private static final double STRECKEN_TOLERANZ = 38.0;
     private static final double START_ABSTAND = 45.0;
+    private static final double AUTO_KOLLISIONS_RADIUS = 30.0;
     private static final long COUNTDOWN_DAUER_MS = 3000;
     private static final long GO_ANZEIGE_DAUER_MS = 800;
 
@@ -267,6 +268,21 @@ public class Spiel implements Runnable {
                     }
                 }
                 elKollision = ((Knoten) elKollision).gebeNachfolger();
+            }
+
+            // auto-gegen-auto kollision: beide werden langsamer, beide crash-counter hoch
+            for (int i = 0; i < spieler.length; i++) {
+                for (int j = i + 1; j < spieler.length; j++) {
+                    Auto a1 = spieler[i].gibAuto();
+                    Auto a2 = spieler[j].gibAuto();
+                    double dx = a1.gibX() - a2.gibX();
+                    double dy = a1.gibY() - a2.gibY();
+                    double abstand = Math.sqrt(dx * dx + dy * dy);
+                    if (abstand < AUTO_KOLLISIONS_RADIUS) {
+                        a1.kollision();
+                        a2.kollision();
+                    }
+                }
             }
 
             Listenelement elHase = level.gibGegenstaende().gibAnfang();
