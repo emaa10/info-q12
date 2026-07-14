@@ -22,6 +22,7 @@ public class Spiel implements Runnable {
 
     private int aktuellerSeed;
     private String spielerName = "Spieler 1";
+    private String spielerName2 = "Spieler 2";
     // neustart wird vom menü angefordert, aber im gamethread ausgefuehrt (thread-safe)
     private volatile boolean neustartAngefordert = false;
     private volatile int neustartSeed;
@@ -75,8 +76,26 @@ public class Spiel implements Runnable {
         );
         double autoX = startPt[0] - startLinieTangent[0] * START_ABSTAND;
         double autoY = startPt[1] - startLinieTangent[1] * START_ABSTAND;
-        Auto auto = new Auto(autoX, autoY, startAngle);
-        this.spieler = new Spieler[] { new Spieler(spielerName, auto) };
+
+        // normale zur tangente, damit die beiden autos nebeneinander starten statt uebereinander
+        double normalX = -startLinieTangent[1];
+        double normalY = startLinieTangent[0];
+        double seitenAbstand = 18.0;
+
+        Auto auto1 = new Auto(
+            autoX + normalX * seitenAbstand,
+            autoY + normalY * seitenAbstand,
+            startAngle
+        );
+        Auto auto2 = new Auto(
+            autoX - normalX * seitenAbstand,
+            autoY - normalY * seitenAbstand,
+            startAngle
+        );
+        this.spieler = new Spieler[] {
+            new Spieler(spielerName, auto1),
+            new Spieler(spielerName2, auto2),
+        };
 
         // zustand zuruecksetzen
         this.naechsterCheckpoint = 0;
@@ -180,6 +199,13 @@ public class Spiel implements Runnable {
         this.spielerName = name;
         if (spieler != null && spieler.length > 0) {
             spieler[0].setzeName(name);
+        }
+    }
+
+    public void setzeSpielerName2(String name) {
+        this.spielerName2 = name;
+        if (spieler != null && spieler.length > 1) {
+            spieler[1].setzeName(name);
         }
     }
 
@@ -377,12 +403,13 @@ public class Spiel implements Runnable {
             }
 
             // Autos zeichnen (über alles andere)
-            for (Spieler s : spieler) {
-                Auto a = s.gibAuto();
+            for (int i = 0; i < spieler.length; i++) {
+                Auto a = spieler[i].gibAuto();
                 this.oberflaeche.autoZeichnen(
                     a.gibX(),
                     a.gibY(),
-                    a.gibWinkelDouble()
+                    a.gibWinkelDouble(),
+                    i
                 );
             }
 

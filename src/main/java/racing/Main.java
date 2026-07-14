@@ -35,6 +35,7 @@ public class Main extends Application {
         // spiel starten = immer neuer seed
         oberflaeche.setzeStartAktion(() -> {
             spiel.setzeSpielerName(oberflaeche.gibSpielerName());
+            spiel.setzeSpielerName2(oberflaeche.gibSpielerName2());
             oberflaeche.zeigeSpiel();
             spiel.neuesSpielMitSeed(spiel.erzeugeSeed());
         });
@@ -67,6 +68,7 @@ public class Main extends Application {
         // klick auf leaderboard-eintrag = dieses level (seed) spielen
         oberflaeche.setzeSeedAktion(seed -> {
             spiel.setzeSpielerName(oberflaeche.gibSpielerName());
+            spiel.setzeSpielerName2(oberflaeche.gibSpielerName2());
             oberflaeche.zeigeSpiel();
             spiel.neuesSpielMitSeed(seed);
         });

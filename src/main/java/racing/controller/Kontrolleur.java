@@ -38,18 +38,26 @@ public class Kontrolleur implements Runnable {
         if (!spiel.istRennenGestartet() || spiel.istPausiert()) return;
 
         Set<KeyCode> tasten = oberflaeche.gibGedrueckteTasten();
-        boolean nitroGedrueckt = tasten.contains(KeyCode.N) ||
-            tasten.contains(KeyCode.B) ||
-            tasten.contains(KeyCode.SPACE);
+        Spieler[] spielerListe = spiel.gibSpieler();
 
-        for (Spieler s : spiel.gibSpieler()) {
-            Auto auto = s.gibAuto();
-            auto.setzeNitroTaste(nitroGedrueckt);
-            // aktuell wird jedes Auto angesteuert. muss man später für Mehrspieler anpassen
-            if (tasten.contains(KeyCode.UP)    || tasten.contains(KeyCode.W)) auto.gibGas();
-            if (tasten.contains(KeyCode.DOWN)  || tasten.contains(KeyCode.S)) auto.bremse();
-            if (tasten.contains(KeyCode.LEFT)  || tasten.contains(KeyCode.A)) auto.dreheLinks();
-            if (tasten.contains(KeyCode.RIGHT) || tasten.contains(KeyCode.D)) auto.dreheRechts();
+        // Spieler 1: WASD + B fuer nitro
+        if (spielerListe.length > 0) {
+            Auto auto = spielerListe[0].gibAuto();
+            auto.setzeNitroTaste(tasten.contains(KeyCode.B));
+            if (tasten.contains(KeyCode.W)) auto.gibGas();
+            if (tasten.contains(KeyCode.S)) auto.bremse();
+            if (tasten.contains(KeyCode.A)) auto.dreheLinks();
+            if (tasten.contains(KeyCode.D)) auto.dreheRechts();
+        }
+
+        // Spieler 2: Pfeiltasten + N fuer nitro
+        if (spielerListe.length > 1) {
+            Auto auto = spielerListe[1].gibAuto();
+            auto.setzeNitroTaste(tasten.contains(KeyCode.N));
+            if (tasten.contains(KeyCode.UP))    auto.gibGas();
+            if (tasten.contains(KeyCode.DOWN))  auto.bremse();
+            if (tasten.contains(KeyCode.LEFT))  auto.dreheLinks();
+            if (tasten.contains(KeyCode.RIGHT)) auto.dreheRechts();
         }
     }
 

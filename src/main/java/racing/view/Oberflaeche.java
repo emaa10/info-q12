@@ -42,6 +42,7 @@ public class Oberflaeche {
     private final GraphicsContext gc;
     private final Image baumBild;
     private final Image autoBild;
+    private final Image autoBild2;
     private final Image grasBild;
     private final Image nitroBild;
     private final Image haseBild;
@@ -57,6 +58,7 @@ public class Oberflaeche {
     private IntConsumer seedAktion; // klick auf leaderboard-eintrag -> seed spielen
 
     private TextField nameFeld;
+    private TextField nameFeld2;
     private Button fortsetzenKnopf; // nur sichtbar wenn pausiert
 
     public Oberflaeche() {
@@ -89,6 +91,9 @@ public class Oberflaeche {
         this.autoBild = new Image(
             getClass().getResourceAsStream("/images/auto_m2.png")
         );
+        this.autoBild2 = new Image(
+            getClass().getResourceAsStream("/images/auto_bmw.png")
+        );
         this.grasBild = new Image(
             getClass().getResourceAsStream("/images/grass.jpg")
         );
@@ -107,9 +112,14 @@ public class Oberflaeche {
         titel.getStyleClass().add("titel");
 
         nameFeld = new TextField();
-        nameFeld.setPromptText("Dein Name");
+        nameFeld.setPromptText("Name Spieler 1 (WASD+B)");
         nameFeld.setMaxWidth(240);
         nameFeld.getStyleClass().add("name-feld");
+
+        nameFeld2 = new TextField();
+        nameFeld2.setPromptText("Name Spieler 2 (Pfeile+N)");
+        nameFeld2.setMaxWidth(240);
+        nameFeld2.getStyleClass().add("name-feld");
 
         fortsetzenKnopf = new Button("Fortsetzen");
         Button startKnopf = new Button("Spiel starten");
@@ -138,7 +148,7 @@ public class Oberflaeche {
         });
         beendenKnopf.setOnAction(e -> Platform.exit());
 
-        hauptmenuPanel.getChildren().addAll(titel, fortsetzenKnopf, nameFeld, startKnopf, leaderboardKnopf, beendenKnopf);
+        hauptmenuPanel.getChildren().addAll(titel, fortsetzenKnopf, nameFeld, nameFeld2, startKnopf, leaderboardKnopf, beendenKnopf);
     }
 
     // leaderboard: titel, zeilen-container, zurueck
@@ -157,6 +167,11 @@ public class Oberflaeche {
     public String gibSpielerName() {
         String name = nameFeld.getText().trim();
         return name.isEmpty() ? "Spieler 1" : name;
+    }
+
+    public String gibSpielerName2() {
+        String name = nameFeld2.getText().trim();
+        return name.isEmpty() ? "Spieler 2" : name;
     }
 
     public void setzeStartAktion(Runnable startAktion) {
@@ -271,7 +286,7 @@ public class Oberflaeche {
         });
     }
 
-    public void autoZeichnen(double x, double y, double winkel) {
+    public void autoZeichnen(double x, double y, double winkel, int spielerIndex) {
         Platform.runLater(() -> {
             gc.save();
             gc.translate(x, y);
@@ -279,7 +294,8 @@ public class Oberflaeche {
             gc.rotate(winkel - 90);
             double w = 28;
             double h = 56;
-            gc.drawImage(autoBild, -w / 2, -h / 2, w, h);
+            Image bild = spielerIndex == 1 ? autoBild2 : autoBild;
+            gc.drawImage(bild, -w / 2, -h / 2, w, h);
             gc.restore();
         });
     }
