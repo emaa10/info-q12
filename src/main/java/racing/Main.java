@@ -2,6 +2,12 @@ package racing;
 
 import javafx.application.Application;
 import javafx.scene.Scene;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.Region;
+import javafx.scene.transform.Scale;
 import javafx.stage.Stage;
 import racing.controller.Kontrolleur;
 import racing.datastructure.Knoten;
@@ -73,14 +79,49 @@ public class Main extends Application {
             spiel.neuesSpielMitSeed(seed);
         });
 
-        Scene szene = new Scene(oberflaeche.gibWurzel(), BREITE, HOEHE);
+        // spiel-inhalt bleibt fest bei 960x600 (komplette restliche logik/koordinaten unangetastet)
+        // -> nur der output wird per Scale-Transform auf die tatsaechliche fenster/vollbild-groesse skaliert
+        Region innenWurzel = (Region) oberflaeche.gibWurzel();
+        innenWurzel.setMinSize(BREITE, HOEHE);
+        innenWurzel.setPrefSize(BREITE, HOEHE);
+        innenWurzel.setMaxSize(BREITE, HOEHE);
+
+        Scale skalierung = new Scale(1, 1, 0, 0);
+        innenWurzel.getTransforms().add(skalierung);
+
+        Pane aussenWurzel = new Pane(innenWurzel);
+        aussenWurzel.setStyle("-fx-background-color: black;");
+
+        Runnable aktualisiereSkalierung = () -> {
+            double breiteVerfuegbar = aussenWurzel.getWidth();
+            double hoeheVerfuegbar = aussenWurzel.getHeight();
+            if (breiteVerfuegbar <= 0 || hoeheVerfuegbar <= 0) return;
+            double faktor = Math.min(breiteVerfuegbar / BREITE, hoeheVerfuegbar / HOEHE);
+            skalierung.setX(faktor);
+            skalierung.setY(faktor);
+            innenWurzel.setLayoutX((breiteVerfuegbar - BREITE * faktor) / 2.0);
+            innenWurzel.setLayoutY((hoeheVerfuegbar - HOEHE * faktor) / 2.0);
+        };
+        aussenWurzel.widthProperty().addListener((obs, o, n) -> aktualisiereSkalierung.run());
+        aussenWurzel.heightProperty().addListener((obs, o, n) -> aktualisiereSkalierung.run());
+
+        Scene szene = new Scene(aussenWurzel, BREITE, HOEHE);
         szene.getStylesheets().add(getClass().getResource("/css/menu.css").toExternalForm());
         buehne.setTitle("Racing Game Info Q12");
         buehne.setScene(szene);
-        buehne.setMinHeight(HOEHE);
-        buehne.setMinWidth(BREITE);
-        buehne.setMaxHeight(HOEHE);
-        buehne.setMaxWidth(BREITE);
+        buehne.setMinWidth(480);
+        buehne.setMinHeight(300);
+
+        // ESC bleibt fuers pause-menü reserviert -> vollbild nicht automatisch darüber verlassen
+        buehne.setFullScreenExitHint("");
+        buehne.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
+        // F11 schaltet vollbild um (z.b. fuer 1080p)
+        szene.addEventHandler(KeyEvent.KEY_PRESSED, e -> {
+            if (e.getCode() == KeyCode.F11) {
+                buehne.setFullScreen(!buehne.isFullScreen());
+            }
+        });
+
         buehne.show();
 
         // Tastatureingabe registrieren (braucht die fertige Scene)
