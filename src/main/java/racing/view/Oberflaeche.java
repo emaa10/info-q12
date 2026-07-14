@@ -363,86 +363,88 @@ public class Oberflaeche {
         });
     }
 
-    // zeichnet das hud oben rechts
-    // wenn aufStrecke false ist, wird eine rote warnung angezeigt
-    public void hudZeichnen(
+    // seed-badge oben links, einmal pro frame
+    public void topLeisteZeichnen(int seed) {
+        Platform.runLater(() -> {
+            gc.setFill(Color.rgb(0, 0, 0, 0.55));
+            gc.fillRoundRect(12, 12, 190, 26, 8, 8);
+            gc.setFill(Color.WHITE);
+            gc.setFont(Font.font("Monospace", FontWeight.BOLD, 13));
+            gc.fillText("Seed: " + seed, 22, 30);
+        });
+    }
+
+    // warnung wenn ein spieler von der strecke abkommt. linkeSeite=false -> banner rechts der mitte
+    public void streckenWarnungZeichnen(String spielerName, boolean linkeSeite) {
+        Platform.runLater(() -> {
+            double bx = linkeSeite ? BREITE / 2.0 - 330 : BREITE / 2.0 + 10;
+            gc.setFill(Color.rgb(200, 0, 0, 0.85));
+            gc.fillRoundRect(bx, 12, 320, 34, 8, 8);
+            gc.setFill(Color.WHITE);
+            gc.setFont(Font.font("Monospace", FontWeight.BOLD, 14));
+            gc.fillText(spielerName + ": Nicht mehr auf der Strecke!", bx + 12, 35);
+        });
+    }
+
+    // hud-panel fuer einen spieler. rechteSeite=true -> oben rechts (spieler 1), sonst oben links (spieler 2)
+    public void spielerHudZeichnen(
+        String spielerName,
         int runde,
         long aktuelleZeitMs,
         long besteRundeMs,
-        boolean aufStrecke,
         int checkpointFortschritt,
         int totalCheckpoints,
         int kollisionen,
         int letzterScore,
         String nitroStatus,
         double nitroFortschritt,
-        int seed
+        boolean rechteSeite
     ) {
         Platform.runLater(() -> {
-            // seed oben links anzeigen
+            double px = rechteSeite ? BREITE - 230 : 12;
+            double py = 48;
             gc.setFill(Color.rgb(0, 0, 0, 0.55));
-            gc.fillRoundRect(12, 12, 190, 26, 8, 8);
-            gc.setFill(Color.WHITE);
-            gc.setFont(Font.font("Monospace", FontWeight.BOLD, 13));
-            gc.fillText("Seed: " + seed, 22, 30);
-
-            // warnung wenn man von der strecke fährt
-            if (!aufStrecke) {
-                gc.setFill(Color.rgb(200, 0, 0, 0.85));
-                gc.fillRoundRect(BREITE / 2.0 - 160, 12, 320, 34, 8, 8);
-                gc.setFill(Color.WHITE);
-                gc.setFont(Font.font("Monospace", FontWeight.BOLD, 14));
-                gc.fillText(
-                    "Nicht mehr auf der Strecke!",
-                    BREITE / 2.0 - 140,
-                    35
-                );
-            }
-
-            // hud panel
-            double px = BREITE - 230;
-            double py = 12;
-            gc.setFill(Color.rgb(0, 0, 0, 0.55));
-            gc.fillRoundRect(px, py, 218, 158, 10, 10);
+            gc.fillRoundRect(px, py, 218, 178, 10, 10);
 
             gc.setFill(Color.WHITE);
             gc.setFont(Font.font("Monospace", FontWeight.BOLD, 13));
+            gc.fillText(spielerName, px + 12, py + 18);
             gc.fillText(
                 "Runde:   " + (runde == 0 ? "-" : runde),
                 px + 12,
-                py + 22
+                py + 40
             );
             gc.fillText(
                 "Zeit:    " + formatZeit(aktuelleZeitMs),
                 px + 12,
-                py + 44
+                py + 62
             );
             gc.fillText(
                 "Beste:   " +
                     (besteRundeMs < 0 ? "--:--.---" : formatZeit(besteRundeMs)),
                 px + 12,
-                py + 66
+                py + 84
             );
-            gc.fillText("Crashes: " + kollisionen, px + 12, py + 88);
+            gc.fillText("Crashes: " + kollisionen, px + 12, py + 106);
             gc.fillText(
                 "Score:   " + (letzterScore == 0 ? "-" : letzterScore),
                 px + 12,
-                py + 110
+                py + 128
             );
-            gc.fillText("Nitro:   " + nitroStatus, px + 12, py + 132);
+            gc.fillText("Nitro:   " + nitroStatus, px + 12, py + 150);
 
             double nitroBalken =
                 Math.max(0, Math.min(1, nitroFortschritt)) * 194.0;
             gc.setFill(Color.web("#ffffff", 0.25));
-            gc.fillRoundRect(px + 12, py + 138, 194, 8, 4, 4);
+            gc.fillRoundRect(px + 12, py + 156, 194, 8, 4, 4);
             gc.setFill(
                 nitroStatus.equals("BOOST") ? Color.CYAN : Color.web("#4aa3ff")
             );
-            gc.fillRoundRect(px + 12, py + 138, nitroBalken, 8, 4, 4);
+            gc.fillRoundRect(px + 12, py + 156, nitroBalken, 8, 4, 4);
 
             // checkpoint fortschrittsbalken
             gc.setFill(Color.web("#ffffff", 0.25));
-            gc.fillRoundRect(px + 12, py + 146, 194, 8, 4, 4);
+            gc.fillRoundRect(px + 12, py + 164, 194, 8, 4, 4);
             if (totalCheckpoints > 0) {
                 double balken =
                     (194.0 * checkpointFortschritt) / totalCheckpoints;
@@ -451,7 +453,7 @@ public class Oberflaeche {
                         ? Color.GREEN
                         : Color.YELLOW
                 );
-                gc.fillRoundRect(px + 12, py + 146, balken, 8, 4, 4);
+                gc.fillRoundRect(px + 12, py + 164, balken, 8, 4, 4);
             }
         });
     }
@@ -481,18 +483,25 @@ public class Oberflaeche {
     }
 
     // zeichnet eine checkpoint-linie quer über die strecke
-    // aktiv = nächster checkpoint (gelb), sonst grau
+    // zielP1/zielP2 = naechster checkpoint fuer den jeweiligen spieler (je eigene farbe), sonst grau
     public void checkpointZeichnen(
         double ax,
         double ay,
         double bx,
         double by,
-        boolean aktiv
+        boolean zielP1,
+        boolean zielP2
     ) {
         Platform.runLater(() -> {
             gc.save();
-            if (aktiv) {
+            if (zielP1 && zielP2) {
                 gc.setStroke(Color.YELLOW);
+                gc.setLineWidth(3);
+            } else if (zielP1) {
+                gc.setStroke(Color.YELLOW);
+                gc.setLineWidth(3);
+            } else if (zielP2) {
+                gc.setStroke(Color.CYAN);
                 gc.setLineWidth(3);
             } else {
                 gc.setStroke(Color.web("#ffffff", 0.35));

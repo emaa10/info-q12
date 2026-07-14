@@ -364,16 +364,21 @@ public class Spiel implements Runnable {
             // Track neu zeichnen (MapView übernimmt die komplette Streckenlogik)
             this.level.gibMap().draw();
 
-            // checkpoint-anzeige orientiert sich am fortschritt von spieler 1
-            int anzeigeCheckpoint = spieler[0].gibNaechsterCheckpoint();
-            for (int i = anzeigeCheckpoint; i < checkpoints.length; i++) {
+            // checkpoint-anzeige: jeder spieler hat sein eigenes ziel (eigene farbe)
+            int zielCpP1 = spieler[0].gibNaechsterCheckpoint();
+            int zielCpP2 = spieler.length > 1
+                ? spieler[1].gibNaechsterCheckpoint()
+                : checkpoints.length;
+            int anzeigeAb = Math.min(zielCpP1, zielCpP2);
+            for (int i = anzeigeAb; i < checkpoints.length; i++) {
                 double[] cp = checkpoints[i];
                 this.oberflaeche.checkpointZeichnen(
                     cp[0],
                     cp[1],
                     cp[2],
                     cp[3],
-                    i == anzeigeCheckpoint
+                    i == zielCpP1,
+                    i == zielCpP2
                 );
             }
 
@@ -402,26 +407,35 @@ public class Spiel implements Runnable {
                 );
             }
 
-            Spieler s0 = spieler[0];
-            long aktuelleZeit =
-                s0.gibLapStartZeit() < 0
+            this.oberflaeche.topLeisteZeichnen(aktuellerSeed);
+
+            for (int i = 0; i < spieler.length; i++) {
+                Spieler s = spieler[i];
+                if (!s.istAufStrecke()) {
+                    this.oberflaeche.streckenWarnungZeichnen(s.gibName(), i == 1);
+                }
+            }
+
+            for (int i = 0; i < spieler.length; i++) {
+                Spieler s = spieler[i];
+                Auto a = s.gibAuto();
+                long zeit = s.gibLapStartZeit() < 0
                     ? 0
-                    : System.currentTimeMillis() - s0.gibLapStartZeit();
-            int kollisionen = s0.gibAuto().gibKollisionen();
-            Auto hudAuto = s0.gibAuto();
-            this.oberflaeche.hudZeichnen(
-                s0.gibLapZaehler(),
-                aktuelleZeit,
-                s0.gibBesteRunde(),
-                s0.istAufStrecke(),
-                s0.gibNaechsterCheckpoint(),
-                checkpoints.length,
-                kollisionen,
-                s0.gibLetzterScore(),
-                hudAuto.gibNitroStatus(),
-                hudAuto.gibNitroFortschritt(),
-                aktuellerSeed
-            );
+                    : System.currentTimeMillis() - s.gibLapStartZeit();
+                this.oberflaeche.spielerHudZeichnen(
+                    s.gibName(),
+                    s.gibLapZaehler(),
+                    zeit,
+                    s.gibBesteRunde(),
+                    s.gibNaechsterCheckpoint(),
+                    checkpoints.length,
+                    a.gibKollisionen(),
+                    s.gibLetzterScore(),
+                    a.gibNitroStatus(),
+                    a.gibNitroFortschritt(),
+                    i == 0
+                );
+            }
             String countdownText = gibCountdownText();
             if (countdownText != null) {
                 this.oberflaeche.countdownZeichnen(countdownText);
