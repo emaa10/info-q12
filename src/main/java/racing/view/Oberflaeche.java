@@ -23,6 +23,7 @@ import javafx.scene.text.FontWeight;
 import racing.datastructure.Knoten;
 import racing.datastructure.Liste;
 import racing.datastructure.Listenelement;
+import racing.model.Hase;
 
 // view-teil im MVC
 public class Oberflaeche {
@@ -43,6 +44,7 @@ public class Oberflaeche {
     private final Image autoBild;
     private final Image grasBild;
     private final Image nitroBild;
+    private final Image haseBild;
     private final MapView mapView;
 
     private final Set<KeyCode> gedrueckteTasten = new HashSet<>();
@@ -92,6 +94,9 @@ public class Oberflaeche {
         );
         this.nitroBild = new Image(
             getClass().getResourceAsStream("/images/nitro.png")
+        );
+        this.haseBild = new Image(
+            getClass().getResourceAsStream("/images/hase.png")
         );
         this.mapView = new MapView(this.gc);
     }
@@ -288,6 +293,12 @@ public class Oberflaeche {
     public void nitroZeichnen(int x, int y) {
         Platform.runLater(() -> {
             gc.drawImage(nitroBild, x, y, 36, 36);
+        });
+    }
+
+    public void haseZeichnen(int x, int y) {
+        Platform.runLater(() -> {
+            gc.drawImage(haseBild, x, y, Hase.BREITE, Hase.HOEHE);
         });
     }
 
