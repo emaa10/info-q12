@@ -412,7 +412,7 @@ public class Spiel implements Runnable {
             for (int i = 0; i < spieler.length; i++) {
                 Spieler s = spieler[i];
                 if (!s.istAufStrecke()) {
-                    this.oberflaeche.streckenWarnungZeichnen(s.gibName(), i == 1);
+                    this.oberflaeche.streckenWarnungZeichnen(s.gibName(), i == 0);
                 }
             }
 
@@ -433,7 +433,7 @@ public class Spiel implements Runnable {
                     s.gibLetzterScore(),
                     a.gibNitroStatus(),
                     a.gibNitroFortschritt(),
-                    i == 0
+                    i != 0
                 );
             }
             String countdownText = gibCountdownText();
