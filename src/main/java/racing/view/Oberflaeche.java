@@ -246,6 +246,10 @@ public class Oberflaeche {
         return wurzel;
     }
 
+    public TextField gibNameFeld() {
+        return nameFeld;
+    }
+
     public MapView getMapView() {
         return this.mapView;
     }

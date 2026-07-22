@@ -124,17 +124,21 @@ public class Main extends Application {
             }
         });
 
-        // DIAGNOSE-BUILD: decorated statt undecorated, um zu testen ob
-        // StageStyle.UNDECORATED der Grund ist, warum matchbox-window-manager
-        // dem Fenster nie X11-Input-Fokus gibt.
-        javafx.geometry.Rectangle2D bildschirm = Screen.getPrimary().getVisualBounds();
-        buehne.setX(bildschirm.getMinX());
-        buehne.setY(bildschirm.getMinY());
-        buehne.setWidth(bildschirm.getWidth());
-        buehne.setHeight(bildschirm.getHeight());
-
+        // Kiosk-start: zuerst normal (dekoriert) zeigen, damit der
+        // window-manager dem Fenster X11-Input-Fokus gibt (undecorated
+        // Fenster bekommen bei matchbox-window-manager nie Fokus -> Maus/
+        // Tastatur kamen nie an). Danach programmatisch in echtes Vollbild
+        // wechseln, das der Fokus bereits vorhanden ist -> kein Haengenbleiben
+        // beim Start (das Haengen frueher passierte nur, wenn Vollbild schon
+        // VOR dem ersten Fokus angefordert wurde).
         buehne.show();
         buehne.requestFocus();
+        javafx.application.Platform.runLater(() -> {
+            buehne.setFullScreen(true);
+            // explizit fokussieren -> default focus-traversal greift wegen der
+            // Scale-Transform-verschachtelung (siehe oben) offenbar nicht zuverlaessig
+            oberflaeche.gibNameFeld().requestFocus();
+        });
 
         // Tastatureingabe registrieren (braucht die fertige Scene)
         oberflaeche.registriereEingabe(szene);
