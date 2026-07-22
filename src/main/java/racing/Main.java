@@ -31,6 +31,20 @@ public class Main extends Application {
     private Thread gameThread;
     private Thread controllerThread;
     private Thread audioThread;
+    private boolean threadsGestartet = false;
+
+    // gameThread/controllerThread/audioThread erst hier starten (nicht schon in
+    // start()) -> die spiel-schleife lief sonst schon im hauptmenü mit voller
+    // geschwindigkeit mit, was den javafx-application-thread so stark auslastete
+    // (dauerhaft >100% cpu), dass maus-klicks und tastatureingaben im menü nicht
+    // mehr verarbeitet wurden. erst bei tatsaechlichem spielstart noetig.
+    private void starteHintergrundThreadsFallsNoetig() {
+        if (threadsGestartet) return;
+        threadsGestartet = true;
+        gameThread.start();
+        controllerThread.start();
+        audioThread.start();
+    }
 
     @Override
     public void start(Stage buehne) {
@@ -46,11 +60,13 @@ public class Main extends Application {
             spiel.setzeSpielerName2(oberflaeche.gibSpielerName2());
             oberflaeche.zeigeSpiel();
             spiel.neuesSpielMitSeed(spiel.erzeugeSeed());
+            starteHintergrundThreadsFallsNoetig();
         });
         // fortsetzen = gleicher seed weiter
         oberflaeche.setzeFortsetzenAktion(() -> {
             oberflaeche.zeigeSpiel();
             spiel.fortsetzen();
+            starteHintergrundThreadsFallsNoetig();
         });
         oberflaeche.setzePauseAktion(() -> {
             spiel.pausiere();
@@ -150,9 +166,7 @@ public class Main extends Application {
         gameThread.setDaemon(true);
         controllerThread.setDaemon(true);
         audioThread.setDaemon(true);
-        gameThread.start();
-        controllerThread.start();
-        audioThread.start();
+        // bewusst noch nicht gestartet -> siehe starteHintergrundThreadsFallsNoetig()
     }
 
     @Override
