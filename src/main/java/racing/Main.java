@@ -8,7 +8,9 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.transform.Scale;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 import racing.controller.Kontrolleur;
 import racing.datastructure.Knoten;
 import racing.datastructure.Liste;
@@ -122,7 +124,17 @@ public class Main extends Application {
             }
         });
 
+        // DIAGNOSE-BUILD: decorated statt undecorated, um zu testen ob
+        // StageStyle.UNDECORATED der Grund ist, warum matchbox-window-manager
+        // dem Fenster nie X11-Input-Fokus gibt.
+        javafx.geometry.Rectangle2D bildschirm = Screen.getPrimary().getVisualBounds();
+        buehne.setX(bildschirm.getMinX());
+        buehne.setY(bildschirm.getMinY());
+        buehne.setWidth(bildschirm.getWidth());
+        buehne.setHeight(bildschirm.getHeight());
+
         buehne.show();
+        buehne.requestFocus();
 
         // Tastatureingabe registrieren (braucht die fertige Scene)
         oberflaeche.registriereEingabe(szene);
