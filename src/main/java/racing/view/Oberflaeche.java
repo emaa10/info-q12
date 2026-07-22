@@ -279,49 +279,43 @@ public class Oberflaeche {
         // todo zeichnen
     }
 
+    // ACHTUNG: kein eigenes Platform.runLater() mehr hier drin (siehe unten
+    // bei Spiel.spieleKreis() fuer die begruendung) -> aufrufer muss bereits
+    // auf dem javafx-application-thread sein (oder es selbst in genau EINEN
+    // aeusseren runLater() buendeln, wie es der spiel-loop jetzt macht).
     public void loesche() {
-        Platform.runLater(() -> {
-            int kachelGroesse = 200;
-            for (int x = 0; x < BREITE; x += kachelGroesse) {
-                for (int y = 0; y < HOEHE; y += kachelGroesse) {
-                    gc.drawImage(grasBild, x, y, kachelGroesse, kachelGroesse);
-                }
+        int kachelGroesse = 200;
+        for (int x = 0; x < BREITE; x += kachelGroesse) {
+            for (int y = 0; y < HOEHE; y += kachelGroesse) {
+                gc.drawImage(grasBild, x, y, kachelGroesse, kachelGroesse);
             }
-        });
+        }
     }
 
     public void autoZeichnen(double x, double y, double winkel, int spielerIndex) {
-        Platform.runLater(() -> {
-            gc.save();
-            gc.translate(x, y);
-            // -90° damit das hochkante Bild (Fahrtrichtung unten) bei winkel=0 nach rechts zeigt
-            // auto_bmw.png hat die front oben im bild -> zusaetzlich 180° drehen
-            boolean istAuto2 = spielerIndex == 1;
-            gc.rotate(winkel - 90 + (istAuto2 ? 180 : 0));
-            double w = istAuto2 ? 34 : 28;
-            double h = istAuto2 ? 68 : 56;
-            Image bild = istAuto2 ? autoBild2 : autoBild;
-            gc.drawImage(bild, -w / 2, -h / 2, w, h);
-            gc.restore();
-        });
+        gc.save();
+        gc.translate(x, y);
+        // -90° damit das hochkante Bild (Fahrtrichtung unten) bei winkel=0 nach rechts zeigt
+        // auto_bmw.png hat die front oben im bild -> zusaetzlich 180° drehen
+        boolean istAuto2 = spielerIndex == 1;
+        gc.rotate(winkel - 90 + (istAuto2 ? 180 : 0));
+        double w = istAuto2 ? 34 : 28;
+        double h = istAuto2 ? 68 : 56;
+        Image bild = istAuto2 ? autoBild2 : autoBild;
+        gc.drawImage(bild, -w / 2, -h / 2, w, h);
+        gc.restore();
     }
 
     public void baumZeichnen(int x, int y) {
-        Platform.runLater(() -> {
-            gc.drawImage(baumBild, x, y, 100, 100);
-        });
+        gc.drawImage(baumBild, x, y, 100, 100);
     }
 
     public void nitroZeichnen(int x, int y) {
-        Platform.runLater(() -> {
-            gc.drawImage(nitroBild, x, y, 36, 36);
-        });
+        gc.drawImage(nitroBild, x, y, 36, 36);
     }
 
     public void haseZeichnen(int x, int y) {
-        Platform.runLater(() -> {
-            gc.drawImage(haseBild, x, y, Hase.BREITE, Hase.HOEHE);
-        });
+        gc.drawImage(haseBild, x, y, Hase.BREITE, Hase.HOEHE);
     }
 
     public void testSzene() {
@@ -369,25 +363,21 @@ public class Oberflaeche {
 
     // seed-badge oben links, einmal pro frame
     public void topLeisteZeichnen(int seed) {
-        Platform.runLater(() -> {
-            gc.setFill(Color.rgb(0, 0, 0, 0.55));
-            gc.fillRoundRect(12, 12, 190, 26, 8, 8);
-            gc.setFill(Color.WHITE);
-            gc.setFont(Font.font("Monospace", FontWeight.BOLD, 13));
-            gc.fillText("Seed: " + seed, 22, 30);
-        });
+        gc.setFill(Color.rgb(0, 0, 0, 0.55));
+        gc.fillRoundRect(12, 12, 190, 26, 8, 8);
+        gc.setFill(Color.WHITE);
+        gc.setFont(Font.font("Monospace", FontWeight.BOLD, 13));
+        gc.fillText("Seed: " + seed, 22, 30);
     }
 
     // warnung wenn ein spieler von der strecke abkommt. linkeSeite=false -> banner rechts der mitte
     public void streckenWarnungZeichnen(String spielerName, boolean linkeSeite) {
-        Platform.runLater(() -> {
-            double bx = linkeSeite ? BREITE / 2.0 - 330 : BREITE / 2.0 + 10;
-            gc.setFill(Color.rgb(200, 0, 0, 0.85));
-            gc.fillRoundRect(bx, 12, 320, 34, 8, 8);
-            gc.setFill(Color.WHITE);
-            gc.setFont(Font.font("Monospace", FontWeight.BOLD, 14));
-            gc.fillText(spielerName + ": Nicht mehr auf der Strecke!", bx + 12, 35);
-        });
+        double bx = linkeSeite ? BREITE / 2.0 - 330 : BREITE / 2.0 + 10;
+        gc.setFill(Color.rgb(200, 0, 0, 0.85));
+        gc.fillRoundRect(bx, 12, 320, 34, 8, 8);
+        gc.setFill(Color.WHITE);
+        gc.setFont(Font.font("Monospace", FontWeight.BOLD, 14));
+        gc.fillText(spielerName + ": Nicht mehr auf der Strecke!", bx + 12, 35);
     }
 
     // hud-panel fuer einen spieler. rechteSeite=true -> oben rechts (spieler 1), sonst oben links (spieler 2)
@@ -404,7 +394,7 @@ public class Oberflaeche {
         double nitroFortschritt,
         boolean rechteSeite
     ) {
-        Platform.runLater(() -> {
+        {
             double px = rechteSeite ? BREITE - 230 : 12;
             double py = 48;
             gc.setFill(Color.rgb(0, 0, 0, 0.55));
@@ -459,31 +449,29 @@ public class Oberflaeche {
                 );
                 gc.fillRoundRect(px + 12, py + 164, balken, 8, 4, 4);
             }
-        });
+        }
     }
 
     public void countdownZeichnen(String text) {
-        Platform.runLater(() -> {
-            gc.save();
-            gc.setFill(Color.rgb(0, 0, 0, 0.28));
-            gc.fillRect(0, 0, BREITE, HOEHE);
+        gc.save();
+        gc.setFill(Color.rgb(0, 0, 0, 0.28));
+        gc.fillRect(0, 0, BREITE, HOEHE);
 
-            gc.setFill(Color.WHITE);
-            gc.setFont(
-                Font.font(
-                    "Monospace",
-                    FontWeight.EXTRA_BOLD,
-                    text.equals("GO") ? 86 : 110
-                )
-            );
-            double textBreite = gc.getFont().getSize() * text.length() * 0.62;
-            gc.fillText(
-                text,
-                BREITE / 2.0 - textBreite / 2.0,
-                HOEHE / 2.0 + 34
-            );
-            gc.restore();
-        });
+        gc.setFill(Color.WHITE);
+        gc.setFont(
+            Font.font(
+                "Monospace",
+                FontWeight.EXTRA_BOLD,
+                text.equals("GO") ? 86 : 110
+            )
+        );
+        double textBreite = gc.getFont().getSize() * text.length() * 0.62;
+        gc.fillText(
+            text,
+            BREITE / 2.0 - textBreite / 2.0,
+            HOEHE / 2.0 + 34
+        );
+        gc.restore();
     }
 
     // zeichnet eine checkpoint-linie quer über die strecke
@@ -496,24 +484,22 @@ public class Oberflaeche {
         boolean zielP1,
         boolean zielP2
     ) {
-        Platform.runLater(() -> {
-            gc.save();
-            if (zielP1 && zielP2) {
-                gc.setStroke(Color.YELLOW);
-                gc.setLineWidth(3);
-            } else if (zielP1) {
-                gc.setStroke(Color.YELLOW);
-                gc.setLineWidth(3);
-            } else if (zielP2) {
-                gc.setStroke(Color.CYAN);
-                gc.setLineWidth(3);
-            } else {
-                gc.setStroke(Color.web("#ffffff", 0.35));
-                gc.setLineWidth(2);
-            }
-            gc.strokeLine(ax, ay, bx, by);
-            gc.restore();
-        });
+        gc.save();
+        if (zielP1 && zielP2) {
+            gc.setStroke(Color.YELLOW);
+            gc.setLineWidth(3);
+        } else if (zielP1) {
+            gc.setStroke(Color.YELLOW);
+            gc.setLineWidth(3);
+        } else if (zielP2) {
+            gc.setStroke(Color.CYAN);
+            gc.setLineWidth(3);
+        } else {
+            gc.setStroke(Color.web("#ffffff", 0.35));
+            gc.setLineWidth(2);
+        }
+        gc.strokeLine(ax, ay, bx, by);
+        gc.restore();
     }
 
     private String formatZeit(long ms) {

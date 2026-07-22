@@ -2,6 +2,7 @@ package racing.model;
 
 import java.util.List;
 
+import javafx.application.Platform;
 import racing.datastructure.Knoten;
 import racing.datastructure.Liste;
 import racing.datastructure.Listenelement;
@@ -33,6 +34,18 @@ public class Spiel implements Runnable {
     private double[][] checkpoints;
     private long countdownStartZeit = -1;
 
+    // backpressure fuers zeichnen: GameThread laeuft mit fixem 16ms-sleep und
+    // wartet NICHT auf Platform.runLater() (das ist fire-and-forget) -> unter
+    // software-rendering (kein echtes gpu in qemu) kann der fx-application-
+    // thread einen kompletten frame (strecke+checkpoints+gegenstaende+autos+hud)
+    // oft nicht in 16ms zeichnen. ohne diese sperre wuerden neue runLater()-
+    // aufrufe schneller ankommen als sie abgearbeitet werden -> die queue waechst
+    // unbegrenzt (genau das problem, das die vorherige buendelung in EINEN
+    // runLater() pro frame allein nicht loest). mit der sperre wird ein frame
+    // einfach uebersprungen, wenn der vorherige noch nicht fertig gezeichnet ist.
+    private final java.util.concurrent.atomic.AtomicBoolean zeichnenAusstehend =
+        new java.util.concurrent.atomic.AtomicBoolean(false);
+
     private static final int CHECKPOINT_ANZAHL = 8;
     private static final int NITRO_ANZAHL = 4;
     private static final int HASE_Y = 300;
@@ -55,7 +68,10 @@ public class Spiel implements Runnable {
         // seed in [1, 65536] bringen (laesst gueltige seeds unveraendert), sonst LCG-overflow
         seed = 1 + Math.floorMod(seed - 1, 65536);
         this.aktuellerSeed = seed;
-        this.oberflaeche.loesche();
+        // kann auch vom gamethread aus aufgerufen werden (neustart waehrend
+        // des spiels) -> nicht auf dem fx-thread garantiert, deshalb hier
+        // noch einzeln gewrapped (im gegensatz zum haupt-zeichenblock unten)
+        Platform.runLater(this.oberflaeche::loesche);
         this.level = new Level(new Map(this.oberflaeche.getMapView(), seed));
 
         Map map = this.level.gibMap();
@@ -374,87 +390,103 @@ public class Spiel implements Runnable {
                 }
             }
 
-            // Szene neu zeichnen
-            this.oberflaeche.loesche();
+            // Szene neu zeichnen -> ALLES in EINEN runLater() gebuendelt, statt
+            // vorher pro einzelnem zeichen-aufruf (baum/nitro/hase/checkpoint/...)
+            // einen eigenen. bei vielen objekten kamen da pro frame leicht 20-30+
+            // einzelne Platform.runLater()-aufrufe zusammen, 60x/sekunde -> die
+            // fx-event-queue lief unter software-rendering (kein echtes gpu,
+            // siehe -Dprism.order=es2,sw) schneller voll als sie abgearbeitet
+            // werden konnte, was den fx-application-thread dauerhaft blockierte
+            // und dazu fuehrte, dass maus/tastatur-eingaben nicht mehr verarbeitet
+            // wurden (bzw. wie hier: der countdown/die anzeige einfror).
+            final String countdownTextFuerFrame = gibCountdownText();
+            if (zeichnenAusstehend.compareAndSet(false, true)) {
+            Platform.runLater(() -> {
+              try {
+                this.oberflaeche.loesche();
 
-            // Track neu zeichnen (MapView übernimmt die komplette Streckenlogik)
-            this.level.gibMap().draw();
+                // Track neu zeichnen (MapView übernimmt die komplette Streckenlogik)
+                this.level.gibMap().draw();
 
-            // checkpoint-anzeige: jeder spieler hat sein eigenes ziel (eigene farbe)
-            int zielCpP1 = spieler[0].gibNaechsterCheckpoint();
-            int zielCpP2 = spieler.length > 1
-                ? spieler[1].gibNaechsterCheckpoint()
-                : checkpoints.length;
-            int anzeigeAb = Math.min(zielCpP1, zielCpP2);
-            for (int i = anzeigeAb; i < checkpoints.length; i++) {
-                double[] cp = checkpoints[i];
-                this.oberflaeche.checkpointZeichnen(
-                    cp[0],
-                    cp[1],
-                    cp[2],
-                    cp[3],
-                    i == zielCpP1,
-                    i == zielCpP2
-                );
-            }
-
-            Listenelement el = level.gibGegenstaende().gibAnfang();
-            while (!el.istAbschluss()) {
-                Gegenstand g = (Gegenstand) ((Knoten) el).gebeDaten();
-                int[] pos = g.gebePosition();
-                if (g instanceof Baum) {
-                    this.oberflaeche.baumZeichnen(pos[0], pos[1]);
-                } else if (g instanceof Nitro) {
-                    this.oberflaeche.nitroZeichnen(pos[0], pos[1]);
-                } else if (g instanceof Hase) {
-                    this.oberflaeche.haseZeichnen(pos[0], pos[1]);
+                // checkpoint-anzeige: jeder spieler hat sein eigenes ziel (eigene farbe)
+                int zielCpP1 = spieler[0].gibNaechsterCheckpoint();
+                int zielCpP2 = spieler.length > 1
+                    ? spieler[1].gibNaechsterCheckpoint()
+                    : checkpoints.length;
+                int anzeigeAb = Math.min(zielCpP1, zielCpP2);
+                for (int i = anzeigeAb; i < checkpoints.length; i++) {
+                    double[] cp = checkpoints[i];
+                    this.oberflaeche.checkpointZeichnen(
+                        cp[0],
+                        cp[1],
+                        cp[2],
+                        cp[3],
+                        i == zielCpP1,
+                        i == zielCpP2
+                    );
                 }
-                el = ((Knoten) el).gebeNachfolger();
-            }
 
-            // Autos zeichnen (über alles andere)
-            for (int i = 0; i < spieler.length; i++) {
-                Auto a = spieler[i].gibAuto();
-                this.oberflaeche.autoZeichnen(
-                    a.gibX(),
-                    a.gibY(),
-                    a.gibWinkelDouble(),
-                    i
-                );
-            }
-
-            this.oberflaeche.topLeisteZeichnen(aktuellerSeed);
-
-            for (int i = 0; i < spieler.length; i++) {
-                Spieler s = spieler[i];
-                if (!s.istAufStrecke()) {
-                    this.oberflaeche.streckenWarnungZeichnen(s.gibName(), i == 0);
+                Listenelement el = level.gibGegenstaende().gibAnfang();
+                while (!el.istAbschluss()) {
+                    Gegenstand g = (Gegenstand) ((Knoten) el).gebeDaten();
+                    int[] pos = g.gebePosition();
+                    if (g instanceof Baum) {
+                        this.oberflaeche.baumZeichnen(pos[0], pos[1]);
+                    } else if (g instanceof Nitro) {
+                        this.oberflaeche.nitroZeichnen(pos[0], pos[1]);
+                    } else if (g instanceof Hase) {
+                        this.oberflaeche.haseZeichnen(pos[0], pos[1]);
+                    }
+                    el = ((Knoten) el).gebeNachfolger();
                 }
-            }
 
-            for (int i = 0; i < spieler.length; i++) {
-                Spieler s = spieler[i];
-                Auto a = s.gibAuto();
-                long zeit = s.gibLapStartZeit() < 0
-                    ? 0
-                    : System.currentTimeMillis() - s.gibLapStartZeit();
-                this.oberflaeche.spielerHudZeichnen(
-                    s.gibName(),
-                    s.gibLapZaehler(),
-                    zeit,
-                    s.gibBesteRunde(),
-                    s.gibNaechsterCheckpoint(),
-                    checkpoints.length,
-                    a.gibKollisionen(),
-                    s.gibLetzterScore(),
-                    a.gibNitroStatus(),
-                    a.gibNitroFortschritt(),
-                    i != 0
-                );
-            }
-            String countdownText = gibCountdownText();
-            if (countdownText != null) {
-                this.oberflaeche.countdownZeichnen(countdownText);
+                // Autos zeichnen (über alles andere)
+                for (int i = 0; i < spieler.length; i++) {
+                    Auto a = spieler[i].gibAuto();
+                    this.oberflaeche.autoZeichnen(
+                        a.gibX(),
+                        a.gibY(),
+                        a.gibWinkelDouble(),
+                        i
+                    );
+                }
+
+                this.oberflaeche.topLeisteZeichnen(aktuellerSeed);
+
+                for (int i = 0; i < spieler.length; i++) {
+                    Spieler s = spieler[i];
+                    if (!s.istAufStrecke()) {
+                        this.oberflaeche.streckenWarnungZeichnen(s.gibName(), i == 0);
+                    }
+                }
+
+                for (int i = 0; i < spieler.length; i++) {
+                    Spieler s = spieler[i];
+                    Auto a = s.gibAuto();
+                    long zeit = s.gibLapStartZeit() < 0
+                        ? 0
+                        : System.currentTimeMillis() - s.gibLapStartZeit();
+                    this.oberflaeche.spielerHudZeichnen(
+                        s.gibName(),
+                        s.gibLapZaehler(),
+                        zeit,
+                        s.gibBesteRunde(),
+                        s.gibNaechsterCheckpoint(),
+                        checkpoints.length,
+                        a.gibKollisionen(),
+                        s.gibLetzterScore(),
+                        a.gibNitroStatus(),
+                        a.gibNitroFortschritt(),
+                        i != 0
+                    );
+                }
+                if (countdownTextFuerFrame != null) {
+                    this.oberflaeche.countdownZeichnen(countdownTextFuerFrame);
+                }
+              } finally {
+                zeichnenAusstehend.set(false);
+              }
+            });
             }
 
             try {

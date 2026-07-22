@@ -26,7 +26,7 @@ public class MapView {
     }
 
     public void drawTrack(List<int[]> centerline, int width, int sfIndex) {
-        Platform.runLater(() -> {
+        {
             int n = centerline.size();
             int radius = width / 2;
 
@@ -186,7 +186,7 @@ public class MapView {
                 normalY[startFinishIndex],
                 width
             );
-        });
+        }
     }
 
     public static int findStartFinishIndex(List<int[]> centerline) {
