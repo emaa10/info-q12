@@ -143,14 +143,47 @@ public class Main extends Application {
         // Kiosk-start: zuerst normal (dekoriert) zeigen, damit der
         // window-manager dem Fenster X11-Input-Fokus gibt (undecorated
         // Fenster bekommen bei matchbox-window-manager nie Fokus -> Maus/
-        // Tastatur kamen nie an). Danach programmatisch in echtes Vollbild
-        // wechseln, das der Fokus bereits vorhanden ist -> kein Haengenbleiben
-        // beim Start (das Haengen frueher passierte nur, wenn Vollbild schon
-        // VOR dem ersten Fokus angefordert wurde).
+        // Tastatur kamen nie an). Danach auf volle bildschirmgroesse bringen.
+        //
+        // ACHTUNG: bewusst NICHT buehne.setFullScreen(true) -> das sendet nur
+        // die EWMH _NET_WM_STATE_FULLSCREEN-anfrage an den window-manager, und
+        // matchbox-window-manager bestaetigt/verarbeitet die nicht -> das
+        // fenster blieb in der praxis auf seiner initialen 960x600-groesse
+        // stehen (die Scale-Skalierung unten kam dadurch nie ueber faktor 1.0
+        // hinaus, das spiel wirkte "zu klein" trotz korrektem seitenverhaeltnis).
+        // stattdessen fenstergroesse/-position direkt auf die bildschirm-bounds
+        // setzen -> das ist ein normaler resize/move-request, den auch
+        // minimale window-manager wie matchbox anstandslos ausfuehren.
         buehne.show();
         buehne.requestFocus();
         javafx.application.Platform.runLater(() -> {
-            buehne.setFullScreen(true);
+            // ACHTUNG: Screen.getPrimary().getBounds()/getVisualBounds() liefern
+            // auf dem matchbox/glass-gtk-kiosk-setup beide ein kaputtes
+            // 10x10-rechteck (vermutlich ein glass/gtk-monitor-enumerations-bug
+            // in dieser minimalen umgebung ohne echten desktop) -> per xdotool
+            // bestaetigt, dass die ECHTE aufloesung (xrandr --query) korrekt
+            // 1280x800 meldet, nur JavaFX' eigene Screen-API nicht. deshalb hier
+            // stattdessen die vom .xinitrc per xrandr ermittelte und als
+            // system-property uebergebene aufloesung verwenden; Screen.getPrimary()
+            // bleibt nur als fallback fuer den fall, dass die properties fehlen
+            // (z.b. bei start ausserhalb dieses .xinitrc, etwa im normalen
+            // desktop-betrieb waehrend der entwicklung).
+            double breite = Double.parseDouble(
+                System.getProperty("kiosk.width", "0"));
+            double hoehe = Double.parseDouble(
+                System.getProperty("kiosk.height", "0"));
+            if (breite <= 0 || hoehe <= 0) {
+                javafx.geometry.Rectangle2D bildschirm = Screen.getPrimary().getBounds();
+                breite = bildschirm.getWidth();
+                hoehe = bildschirm.getHeight();
+                buehne.setX(bildschirm.getMinX());
+                buehne.setY(bildschirm.getMinY());
+            } else {
+                buehne.setX(0);
+                buehne.setY(0);
+            }
+            buehne.setWidth(breite);
+            buehne.setHeight(hoehe);
             // explizit fokussieren -> default focus-traversal greift wegen der
             // Scale-Transform-verschachtelung (siehe oben) offenbar nicht zuverlaessig
             oberflaeche.gibNameFeld().requestFocus();
