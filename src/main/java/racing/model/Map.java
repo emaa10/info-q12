@@ -16,18 +16,19 @@ import racing.view.MapView;
 
 public class Map {
 
-    private static final int WIDTH = 960;
-    private static final int HEIGHT = 600;
-    private static final int MARGIN = 100;
+    private static final double SKALIERUNG = 1.8;
+    private static final int WIDTH = 1920;
+    private static final int HEIGHT = 1080;
+    private static final int MARGIN = (int) Math.round(100 * SKALIERUNG);
     private static final int MIN_POINTS = 12;
     private static final int MAX_POINTS = 16;
-    private static final int MIN_DISTANCE = 55;
-    private static final int MAX_DISPLACEMENT = 65;
+    private static final int MIN_DISTANCE = (int) Math.round(55 * SKALIERUNG);
+    private static final int MAX_DISPLACEMENT = (int) Math.round(65 * SKALIERUNG);
     private static final double DIFFICULTY = 0.1;
-    private static final int DISTANCE_BETWEEN_POINTS = 70;
+    private static final int DISTANCE_BETWEEN_POINTS = (int) Math.round(70 * SKALIERUNG);
     private static final double MAX_ANGLE = 80.0;
     private static final int SPLINE_POINTS = 1000;
-    static final int TRACK_WIDTH = 60;
+    static final int TRACK_WIDTH = (int) Math.round(60 * SKALIERUNG);
 
     // 2^16 + 1 = 65537
     private static final int LCG_MODULUS = (1 << 16) + 1;
@@ -428,7 +429,7 @@ public class Map {
     }
 
     // fahrbahn-halbbreite inkl. border (30 asphalt + 8 border), passt zur sichtbaren strecke
-    private static final double FAHRBAHN_RAND = TRACK_WIDTH / 2.0 + 8.0;
+    private static final double FAHRBAHN_RAND = TRACK_WIDTH / 2.0 + 8.0 * SKALIERUNG;
 
     public double distanceToTrack(double x, double y) {
         // abstand zum naechsten SEGMENT (nicht nur punkt), passt zum gezeichneten band

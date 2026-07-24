@@ -7,10 +7,11 @@ import javafx.scene.paint.Color;
 
 public class MapView {
 
-    private static final int CANVAS_WIDTH = 960;
-    private static final int CANVAS_HEIGHT = 600;
+    private static final double SKALIERUNG = 1.8;
+    private static final int CANVAS_WIDTH = 1920;
+    private static final int CANVAS_HEIGHT = 1080;
 
-    private static final int BORDER_WIDTH = 8;
+    private static final int BORDER_WIDTH = (int) Math.round(8 * SKALIERUNG);
     private static final Color TRACK_SURFACE = Color.web("#c4c0b0");
     private static final Color TRACK_BORDER = Color.web("#8a8070");
     private static final Color KERB_RED = Color.web("#cc2200");
@@ -109,7 +110,7 @@ public class MapView {
             gc.save();
             gc.setGlobalAlpha(0.22);
             gc.setFill(Color.BLACK);
-            gc.translate(4, 5);
+            gc.translate(4 * SKALIERUNG, 5 * SKALIERUNG);
             gc.fillPolygon(borderPolyX, borderPolyY, 2 * n);
             gc.restore();
 
@@ -128,7 +129,7 @@ public class MapView {
             gc.setFill(TRACK_SURFACE);
             gc.fillPolygon(trackPolyX, trackPolyY, 2 * n);
             gc.setStroke(TRACK_SURFACE);
-            gc.setLineWidth(6.0);
+            gc.setLineWidth(6.0 * SKALIERUNG);
             gc.strokeLine(leftX[0], leftY[0], rightX[0], rightY[0]);
             gc.setFill(TRACK_SURFACE);
             for (int i = 0; i < n; i++) {
@@ -152,10 +153,10 @@ public class MapView {
             for (int i = 0; i < n; i++) {
                 int next = (i + 1) % n;
                 if (corners[i]) {
-                    gc.setLineWidth(3.5);
+                    gc.setLineWidth(3.5 * SKALIERUNG);
                     gc.setStroke((i / 4) % 2 == 0 ? KERB_RED : Color.WHITE);
                 } else {
-                    gc.setLineWidth(2.0);
+                    gc.setLineWidth(2.0 * SKALIERUNG);
                     gc.setStroke(Color.WHITE);
                 }
                 gc.strokeLine(leftX[i], leftY[i], leftX[next], leftY[next]);
@@ -174,8 +175,8 @@ public class MapView {
             cyArr[cCount] = cyArr[0];
             gc.save();
             gc.setStroke(Color.WHITE);
-            gc.setLineDashes(8, 12);
-            gc.setLineWidth(1.5);
+            gc.setLineDashes(8 * SKALIERUNG, 12 * SKALIERUNG);
+            gc.setLineWidth(1.5 * SKALIERUNG);
             gc.strokePolyline(cxArr, cyArr, cCount + 1);
             gc.restore();
 
@@ -241,12 +242,13 @@ public class MapView {
         double ny,
         int width
     ) {
-        int tileSize = 10;
+        int tileSize = (int) Math.round(10 * SKALIERUNG);
         int cols = (int) Math.ceil(width / (double) tileSize);
         int rows = 3;
         double half = (rows * tileSize) / 2.0;
         double startX = cx - nx * (width / 2.0);
         double startY = cy - ny * (width / 2.0);
+        double randDicke = 2 * SKALIERUNG;
         gc.save();
         gc.translate(startX, startY);
         gc.rotate(Math.toDegrees(Math.atan2(ny, nx)));
@@ -264,8 +266,8 @@ public class MapView {
             }
         }
         gc.setFill(Color.WHITE);
-        gc.fillRect(0, -half - 2, cols * tileSize, 2);
-        gc.fillRect(0, half, cols * tileSize, 2);
+        gc.fillRect(0, -half - randDicke, cols * tileSize, randDicke);
+        gc.fillRect(0, half, cols * tileSize, randDicke);
         gc.restore();
     }
 

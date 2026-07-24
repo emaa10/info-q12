@@ -2,10 +2,12 @@ package racing.model;
 
 public class Nitro extends Gegenstand {
 
-    public static final int BREITE = 36;
-    public static final int HOEHE = 36;
+    private static final double SKALIERUNG = 1.8;
 
-    private static final int HITBOX_RADIUS = 26;
+    public static final int BREITE = (int) Math.round(36 * SKALIERUNG);
+    public static final int HOEHE = (int) Math.round(36 * SKALIERUNG);
+
+    private static final int HITBOX_RADIUS = (int) Math.round(26 * SKALIERUNG);
 
     public boolean kollidiertMit(int px, int py) {
         double cx = x + BREITE / 2.0;

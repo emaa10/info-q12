@@ -22,8 +22,8 @@ import racing.view.Oberflaeche;
 
 public class Main extends Application {
 
-    private static final int BREITE = 960;
-    private static final int HOEHE = 600;
+    private static final int BREITE = 1920;
+    private static final int HOEHE = 1080;
 
     private Spiel spiel;
     private Kontrolleur kontrolleur;
@@ -129,6 +129,7 @@ public class Main extends Application {
         buehne.setScene(szene);
         buehne.setMinWidth(480);
         buehne.setMinHeight(300);
+        buehne.setResizable(true);
 
         // ESC bleibt fuers pause-menü reserviert -> vollbild nicht automatisch darüber verlassen
         buehne.setFullScreenExitHint("");

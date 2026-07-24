@@ -4,18 +4,20 @@ import javafx.scene.image.Image;
 
 public class Baum extends Gegenstand {
 
-    public static final int BREITE = 100;
-    public static final int HOEHE = 100;
+    private static final double SKALIERUNG = 1.8;
+
+    public static final int BREITE = (int) Math.round(100 * SKALIERUNG);
+    public static final int HOEHE = (int) Math.round(100 * SKALIERUNG);
 
     private static final Image BILD = new Image(
         Baum.class.getResourceAsStream("/images/tree.png")
     );
 
     // Hitbox für Kollisionserkennung, muss noch angepasst werden, wenn Elias die Assets fertig hat
-    private final int hitboxOffsetX = 20;
-    private final int hitboxOffsetY = 50;
-    private final int hitboxBreite = 60;
-    private final int hitboxHoehe = 45;
+    private final int hitboxOffsetX = (int) Math.round(20 * SKALIERUNG);
+    private final int hitboxOffsetY = (int) Math.round(50 * SKALIERUNG);
+    private final int hitboxBreite = (int) Math.round(60 * SKALIERUNG);
+    private final int hitboxHoehe = (int) Math.round(45 * SKALIERUNG);
 
     public Image gibBild() {
         return BILD;

@@ -1,14 +1,16 @@
 package racing.model;
 
 public class Hase extends Gegenstand {
-    public static final int BREITE = 40;
-    public static final int HOEHE = 35;
-    public static final double GESCHWINDIGKEIT = 2.0;
+    private static final double SKALIERUNG = 1.8;
+
+    public static final int BREITE = (int) Math.round(40 * SKALIERUNG);
+    public static final int HOEHE = (int) Math.round(35 * SKALIERUNG);
+    public static final double GESCHWINDIGKEIT = 2.0 * SKALIERUNG;
 
     private final int hitboxOffsetX = 0;
     private final int hitboxOffsetY = 0;
-    private final int hitboxBreite = 40;
-    private final int hitboxHoehe = 35;
+    private final int hitboxBreite = BREITE;
+    private final int hitboxHoehe = HOEHE;
 
     public int[] gibHitbox() {
         return new int[] {
