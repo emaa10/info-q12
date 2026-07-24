@@ -146,7 +146,21 @@ public class Oberflaeche {
         leaderboardKnopf.setOnAction(e -> {
             if (leaderboardAktion != null) leaderboardAktion.run();
         });
-        beendenKnopf.setOnAction(e -> Platform.exit());
+        // "Beenden" soll auf der kiosk-hardware NICHT den ganzen bildschirm
+        // unwiderruflich toterlegen -> stattdessen die anwendung sauber
+        // beenden. das .xinitrc auf dem kiosk startet java in einer
+        // neustart-schleife (nicht mehr per "exec"), die den prozess bei
+        // JEDEM exit automatisch neu startet -> selbst spawnen waere hier
+        // falsch: xinit/startx erkennt "exec java ..." als DEN client-
+        // prozess der session, und toetet beim exit die komplette X-session
+        // (auch wenn man vorher selbst schon einen ersatzprozess gestartet
+        // hat -> der verliert dann seine display-verbindung, bevor er
+        // ueberhaupt was anzeigen kann). einfaches beenden reicht hier aus,
+        // die aeussere schleife im .xinitrc uebernimmt den neustart.
+        beendenKnopf.setOnAction(e -> {
+            Platform.exit();
+            System.exit(0);
+        });
 
         hauptmenuPanel.getChildren().addAll(titel, fortsetzenKnopf, nameFeld, nameFeld2, startKnopf, leaderboardKnopf, beendenKnopf);
     }
