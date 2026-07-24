@@ -30,19 +30,21 @@ public class Auto implements Datenelement {
     private int nitroLadungTicks = 0;
     private boolean nitroTasteGedrueckt = false;
 
+    private static final double SKALIERUNG = 1.8;
+
     private static final int NITRO_MAX_TICKS = 360;
     private static final int NITRO_PICKUP_TICKS = 180;
     private static final double NITRO_BESCHLEUNIGUNG = 2.2;
-    private static final double NITRO_SCHUB = 0.08;
+    private static final double NITRO_SCHUB = 0.08 * SKALIERUNG;
 
     public Auto(double x, double y, double winkel) {
-        this.maxSpeed = 3.2;
+        this.maxSpeed = 3.2 * SKALIERUNG;
         this.x = x;
         this.y = y;
         this.prevX = x;
         this.prevY = y;
         this.winkel = winkel;
-        this.a = 0.1; // wir geben weniger gas, vorher 0.22
+        this.a = 0.1 * SKALIERUNG; // wir geben weniger gas, vorher 0.22
         this.m = 1000.0;
         this.Cv = 0.9; // Wir erhöhen die Friction vorher 0.3
         this.Crr = 0.01;
@@ -102,7 +104,7 @@ public class Auto implements Datenelement {
     }
 
     // lenkeinschlag skaliert mit tempo, sonst dreht sich das auto im stand auf der stelle
-    private static final double MIN_LENK_SPEED = 0.5;
+    private static final double MIN_LENK_SPEED = 0.5 * SKALIERUNG;
 
     public void dreheLinks() {
         double faktor = Math.min(1.0, getSpeed() / MIN_LENK_SPEED);
@@ -149,15 +151,15 @@ public class Auto implements Datenelement {
 
     // je weiter das Auto vom Track entfernt ist, desto mehr Reibung (0.99 auf Track, 0.90 weit draußen)
     public void applyOffTrackFriction(double distVomTrack) {
-        double faktor = 0.99 - 0.09 * (1.0 - Math.exp(-distVomTrack / 30.0));
+        double faktor = 0.99 - 0.09 * (1.0 - Math.exp(-distVomTrack / (30.0 * SKALIERUNG)));
         v_x *= faktor;
         v_y *= faktor;
     }
 
     // schaut dass das auto nicht aus der bahn rausfährt, wenn es die wand berührt wird die position korrigiert und die geschwindigkeit in diese richtung auf 0 gesetzt
     public void begrenze(double maxX, double maxY) {
-        double halbBreite = 28;
-        double halbHoehe = 14;
+        double halbBreite = 28 * SKALIERUNG;
+        double halbHoehe = 14 * SKALIERUNG;
 
         if (x - halbBreite < 0) {
             x = halbBreite;

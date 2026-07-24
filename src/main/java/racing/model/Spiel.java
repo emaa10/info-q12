@@ -33,12 +33,16 @@ public class Spiel implements Runnable {
     private double[][] checkpoints;
     private long countdownStartZeit = -1;
 
+    private static final double SKALIERUNG = 1.8;
+    private static final int BREITE = 1920;
+    private static final int HOEHE = 1080;
+
     private static final int CHECKPOINT_ANZAHL = 8;
     private static final int NITRO_ANZAHL = 4;
-    private static final int HASE_Y = 300;
-    private static final double STRECKEN_TOLERANZ = 38.0;
-    private static final double START_ABSTAND = 45.0;
-    private static final double AUTO_KOLLISIONS_RADIUS = 30.0;
+    private static final int HASE_Y = (int) Math.round(300 * SKALIERUNG);
+    private static final double STRECKEN_TOLERANZ = 38.0 * SKALIERUNG;
+    private static final double START_ABSTAND = 45.0 * SKALIERUNG;
+    private static final double AUTO_KOLLISIONS_RADIUS = 30.0 * SKALIERUNG;
     private static final long COUNTDOWN_DAUER_MS = 3000;
     private static final long GO_ANZEIGE_DAUER_MS = 800;
 
@@ -74,7 +78,7 @@ public class Spiel implements Runnable {
         // normale zur tangente, damit die beiden autos nebeneinander starten statt uebereinander
         double normalX = -startLinieTangent[1];
         double normalY = startLinieTangent[0];
-        double seitenAbstand = 18.0;
+        double seitenAbstand = 18.0 * SKALIERUNG;
 
         Auto auto1 = new Auto(
             autoX + normalX * seitenAbstand,
@@ -101,21 +105,26 @@ public class Spiel implements Runnable {
     }
 
     // baeume an feste ecken, nitros auf die strecke
+    // rasterwerte hier sind auf der urspruenglichen 960x600-flaeche
+    // handgetunt -> mit SKALIERUNG hochrechnen statt neu abzustimmen
     private void platziereBaeumeUndNitros() {
         Map map = this.level.gibMap();
+        int mindestAbstand = (int) Math.round(100 * SKALIERUNG);
         int[] reihenX = { 30, 130, 230, 330, 430, 530, 630, 730, 830 };
-        for (int x : reihenX) {
-            int y = 20;
-            if (map.distanceToTrack(x, y) >= 100) level.platziereGegenstand(new Baum(), x, y);
-            y = 470;
-            if (map.distanceToTrack(x, y) >= 100) level.platziereGegenstand(new Baum(), x, y);
+        for (int xRoh : reihenX) {
+            int x = (int) Math.round(xRoh * SKALIERUNG);
+            int y = (int) Math.round(20 * SKALIERUNG);
+            if (map.distanceToTrack(x, y) >= mindestAbstand) level.platziereGegenstand(new Baum(), x, y);
+            y = (int) Math.round(470 * SKALIERUNG);
+            if (map.distanceToTrack(x, y) >= mindestAbstand) level.platziereGegenstand(new Baum(), x, y);
         }
         int[] reihenY = { 30, 130, 230, 330, 430 };
-        for (int y : reihenY) {
-            int x = 20;
-            if (map.distanceToTrack(x, y) >= 100) level.platziereGegenstand(new Baum(), x, y);
-            x = 840;
-            if (map.distanceToTrack(x, y) >= 100) level.platziereGegenstand(new Baum(), x, y);
+        for (int yRoh : reihenY) {
+            int y = (int) Math.round(yRoh * SKALIERUNG);
+            int x = (int) Math.round(20 * SKALIERUNG);
+            if (map.distanceToTrack(x, y) >= mindestAbstand) level.platziereGegenstand(new Baum(), x, y);
+            x = (int) Math.round(840 * SKALIERUNG);
+            if (map.distanceToTrack(x, y) >= mindestAbstand) level.platziereGegenstand(new Baum(), x, y);
         }
         platziereNitros();
     }
@@ -232,7 +241,7 @@ public class Spiel implements Runnable {
                     .gibMap()
                     .distanceToTrack(a.gibX(), a.gibY());
                 a.applyOffTrackFriction(dist);
-                a.begrenze(960, 600);
+                a.begrenze(BREITE, HOEHE);
             }
 
             Listenelement elKollision = level.gibGegenstaende().gibAnfang();
@@ -297,7 +306,7 @@ public class Spiel implements Runnable {
                         int autoY = (int) spieler[0].gibAuto().gibY();
                         ny += (autoY - ny) / 30;
                     }
-                    if (nx > 960) {
+                    if (nx > BREITE) {
                         nx = 0;
                     }
                     hase.setzePosition(nx, ny);

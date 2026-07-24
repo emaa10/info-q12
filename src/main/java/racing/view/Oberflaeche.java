@@ -28,8 +28,16 @@ import racing.model.Hase;
 // view-teil im MVC
 public class Oberflaeche {
 
-    private static final int BREITE = 960;
-    private static final int HOEHE = 600;
+    private static final int BREITE = 1920;
+    private static final int HOEHE = 1080;
+    // 1080/600 = 1.8 -> alle bisher auf 960x600 handgetunten pixel-konstanten
+    // (sprite-groessen, hud-layout, schriftgroessen etc.) mit diesem faktor
+    // hochskalieren, damit das spiel bei echter 1920x1080-aufloesung genauso
+    // aussieht/wirkt wie vorher bei 960x600, statt nur unproportional kleiner
+    // zu wirken. 1.8 (nicht 2.0, das waere die breiten-ratio) gewaehlt, weil
+    // 1080 die staerker begrenzende achse ist (960x600 hat seitenverhaeltnis
+    // 1.6:1, 1920x1080 hat 1.777:1 -> nicht exakt gleich).
+    private static final double SKALIERUNG = 1.8;
 
     // wurzel stapelt die ebenen uebereinander (erstes kind unten)
     private final StackPane wurzel;
@@ -277,7 +285,7 @@ public class Oberflaeche {
 
     public void loesche() {
         Platform.runLater(() -> {
-            int kachelGroesse = 200;
+            int kachelGroesse = (int) Math.round(200 * SKALIERUNG);
             for (int x = 0; x < BREITE; x += kachelGroesse) {
                 for (int y = 0; y < HOEHE; y += kachelGroesse) {
                     gc.drawImage(grasBild, x, y, kachelGroesse, kachelGroesse);
@@ -294,8 +302,8 @@ public class Oberflaeche {
             // auto_bmw.png hat die front oben im bild -> zusaetzlich 180° drehen
             boolean istAuto2 = spielerIndex == 1;
             gc.rotate(winkel - 90 + (istAuto2 ? 180 : 0));
-            double w = istAuto2 ? 34 : 28;
-            double h = istAuto2 ? 68 : 56;
+            double w = (istAuto2 ? 34 : 28) * SKALIERUNG;
+            double h = (istAuto2 ? 68 : 56) * SKALIERUNG;
             Image bild = istAuto2 ? autoBild2 : autoBild;
             gc.drawImage(bild, -w / 2, -h / 2, w, h);
             gc.restore();
@@ -304,13 +312,15 @@ public class Oberflaeche {
 
     public void baumZeichnen(int x, int y) {
         Platform.runLater(() -> {
-            gc.drawImage(baumBild, x, y, 100, 100);
+            double s = 100 * SKALIERUNG;
+            gc.drawImage(baumBild, x, y, s, s);
         });
     }
 
     public void nitroZeichnen(int x, int y) {
         Platform.runLater(() -> {
-            gc.drawImage(nitroBild, x, y, 36, 36);
+            double s = 36 * SKALIERUNG;
+            gc.drawImage(nitroBild, x, y, s, s);
         });
     }
 
@@ -366,23 +376,25 @@ public class Oberflaeche {
     // seed-badge oben links, einmal pro frame
     public void topLeisteZeichnen(int seed) {
         Platform.runLater(() -> {
+            double s = SKALIERUNG;
             gc.setFill(Color.rgb(0, 0, 0, 0.55));
-            gc.fillRoundRect(12, 12, 190, 26, 8, 8);
+            gc.fillRoundRect(12 * s, 12 * s, 190 * s, 26 * s, 8 * s, 8 * s);
             gc.setFill(Color.WHITE);
-            gc.setFont(Font.font("Monospace", FontWeight.BOLD, 13));
-            gc.fillText("Seed: " + seed, 22, 30);
+            gc.setFont(Font.font("Monospace", FontWeight.BOLD, 13 * s));
+            gc.fillText("Seed: " + seed, 22 * s, 30 * s);
         });
     }
 
     // warnung wenn ein spieler von der strecke abkommt. linkeSeite=false -> banner rechts der mitte
     public void streckenWarnungZeichnen(String spielerName, boolean linkeSeite) {
         Platform.runLater(() -> {
-            double bx = linkeSeite ? BREITE / 2.0 - 330 : BREITE / 2.0 + 10;
+            double s = SKALIERUNG;
+            double bx = linkeSeite ? BREITE / 2.0 - 330 * s : BREITE / 2.0 + 10 * s;
             gc.setFill(Color.rgb(200, 0, 0, 0.85));
-            gc.fillRoundRect(bx, 12, 320, 34, 8, 8);
+            gc.fillRoundRect(bx, 12 * s, 320 * s, 34 * s, 8 * s, 8 * s);
             gc.setFill(Color.WHITE);
-            gc.setFont(Font.font("Monospace", FontWeight.BOLD, 14));
-            gc.fillText(spielerName + ": Nicht mehr auf der Strecke!", bx + 12, 35);
+            gc.setFont(Font.font("Monospace", FontWeight.BOLD, 14 * s));
+            gc.fillText(spielerName + ": Nicht mehr auf der Strecke!", bx + 12 * s, 35 * s);
         });
     }
 
@@ -401,65 +413,67 @@ public class Oberflaeche {
         boolean rechteSeite
     ) {
         Platform.runLater(() -> {
-            double px = rechteSeite ? BREITE - 230 : 12;
-            double py = 48;
+            double s = SKALIERUNG;
+            double px = rechteSeite ? BREITE - 230 * s : 12 * s;
+            double py = 48 * s;
             gc.setFill(Color.rgb(0, 0, 0, 0.55));
-            gc.fillRoundRect(px, py, 218, 178, 10, 10);
+            gc.fillRoundRect(px, py, 218 * s, 178 * s, 10 * s, 10 * s);
 
             gc.setFill(Color.WHITE);
-            gc.setFont(Font.font("Monospace", FontWeight.BOLD, 13));
-            gc.fillText(spielerName, px + 12, py + 18);
+            gc.setFont(Font.font("Monospace", FontWeight.BOLD, 13 * s));
+            gc.fillText(spielerName, px + 12 * s, py + 18 * s);
             gc.fillText(
                 "Runde:   " + (runde == 0 ? "-" : runde),
-                px + 12,
-                py + 40
+                px + 12 * s,
+                py + 40 * s
             );
             gc.fillText(
                 "Zeit:    " + formatZeit(aktuelleZeitMs),
-                px + 12,
-                py + 62
+                px + 12 * s,
+                py + 62 * s
             );
             gc.fillText(
                 "Beste:   " +
                     (besteRundeMs < 0 ? "--:--.---" : formatZeit(besteRundeMs)),
-                px + 12,
-                py + 84
+                px + 12 * s,
+                py + 84 * s
             );
-            gc.fillText("Crashes: " + kollisionen, px + 12, py + 106);
+            gc.fillText("Crashes: " + kollisionen, px + 12 * s, py + 106 * s);
             gc.fillText(
                 "Score:   " + (letzterScore == 0 ? "-" : letzterScore),
-                px + 12,
-                py + 128
+                px + 12 * s,
+                py + 128 * s
             );
-            gc.fillText("Nitro:   " + nitroStatus, px + 12, py + 150);
+            gc.fillText("Nitro:   " + nitroStatus, px + 12 * s, py + 150 * s);
 
             double nitroBalken =
-                Math.max(0, Math.min(1, nitroFortschritt)) * 194.0;
+                Math.max(0, Math.min(1, nitroFortschritt)) * 194.0 * s;
             gc.setFill(Color.web("#ffffff", 0.25));
-            gc.fillRoundRect(px + 12, py + 156, 194, 8, 4, 4);
+            gc.fillRoundRect(px + 12 * s, py + 156 * s, 194 * s, 8 * s, 4 * s, 4 * s);
             gc.setFill(
                 nitroStatus.equals("BOOST") ? Color.CYAN : Color.web("#4aa3ff")
             );
-            gc.fillRoundRect(px + 12, py + 156, nitroBalken, 8, 4, 4);
+            gc.fillRoundRect(px + 12 * s, py + 156 * s, nitroBalken, 8 * s, 4 * s, 4 * s);
 
             // checkpoint fortschrittsbalken
             gc.setFill(Color.web("#ffffff", 0.25));
-            gc.fillRoundRect(px + 12, py + 164, 194, 8, 4, 4);
+            gc.fillRoundRect(px + 12 * s, py + 164 * s, 194 * s, 8 * s, 4 * s, 4 * s);
             if (totalCheckpoints > 0) {
                 double balken =
-                    (194.0 * checkpointFortschritt) / totalCheckpoints;
+                    (194.0 * s * checkpointFortschritt) / totalCheckpoints;
                 gc.setFill(
                     checkpointFortschritt == totalCheckpoints
                         ? Color.GREEN
                         : Color.YELLOW
                 );
-                gc.fillRoundRect(px + 12, py + 164, balken, 8, 4, 4);
+                gc.fillRoundRect(px + 12 * s, py + 164 * s, balken, 8 * s, 4 * s, 4 * s);
             }
         });
     }
 
     public void countdownZeichnen(String text) {
         Platform.runLater(() -> {
+            double s = SKALIERUNG;
             gc.save();
             gc.setFill(Color.rgb(0, 0, 0, 0.28));
             gc.fillRect(0, 0, BREITE, HOEHE);
@@ -469,14 +483,14 @@ public class Oberflaeche {
                 Font.font(
                     "Monospace",
                     FontWeight.EXTRA_BOLD,
-                    text.equals("GO") ? 86 : 110
+                    (text.equals("GO") ? 86 : 110) * s
                 )
             );
             double textBreite = gc.getFont().getSize() * text.length() * 0.62;
             gc.fillText(
                 text,
                 BREITE / 2.0 - textBreite / 2.0,
-                HOEHE / 2.0 + 34
+                HOEHE / 2.0 + 34 * s
             );
             gc.restore();
         });
@@ -496,16 +510,16 @@ public class Oberflaeche {
             gc.save();
             if (zielP1 && zielP2) {
                 gc.setStroke(Color.YELLOW);
-                gc.setLineWidth(3);
+                gc.setLineWidth(3 * SKALIERUNG);
             } else if (zielP1) {
                 gc.setStroke(Color.YELLOW);
-                gc.setLineWidth(3);
+                gc.setLineWidth(3 * SKALIERUNG);
             } else if (zielP2) {
                 gc.setStroke(Color.CYAN);
-                gc.setLineWidth(3);
+                gc.setLineWidth(3 * SKALIERUNG);
             } else {
                 gc.setStroke(Color.web("#ffffff", 0.35));
-                gc.setLineWidth(2);
+                gc.setLineWidth(2 * SKALIERUNG);
             }
             gc.strokeLine(ax, ay, bx, by);
             gc.restore();
