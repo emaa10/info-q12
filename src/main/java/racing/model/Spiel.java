@@ -58,6 +58,17 @@ public class Spiel implements Runnable {
     private static final double AUTO_KOLLISIONS_RADIUS = 30.0 * SKALIERUNG;
     private static final long COUNTDOWN_DAUER_MS = 3000;
     private static final long GO_ANZEIGE_DAUER_MS = 800;
+    private static final int RUNDEN_ZUM_SIEG = 3;
+    // erklaerungsfenster (regeln/steuerung) laeuft VOR dem 3-2-1-GO countdown,
+    // deshalb verschiebt sich countdownStartZeit-basierte logik (gibCountdownText(),
+    // istRennenGestartet()) unten um genau diese dauer
+    private static final long ERKLAERUNG_DAUER_MS = 10000;
+
+    // true sobald ein spieler RUNDEN_ZUM_SIEG runden voll hat -> simulation
+    // friert ein (siehe spieleKreis()), der sieger-bildschirm wird per
+    // Platform.runLater() genau einmal beim uebergang false->true angestossen
+    private boolean rennBeendet = false;
+    private String siegerName = null;
 
     public Spiel(Oberflaeche oberflaeche) {
         this.oberflaeche = oberflaeche;
@@ -115,6 +126,8 @@ public class Spiel implements Runnable {
         this.countdownStartZeit = -1;
         this.pausiert = false;
         this.pauseBeginn = -1;
+        this.rennBeendet = false;
+        this.siegerName = null;
 
         platziereBaeumeUndNitros();
         platziereHase();
@@ -178,6 +191,19 @@ public class Spiel implements Runnable {
     // start-button im menü -> countdown laeuft los
     public void starteRennen() {
         countdownStartZeit = System.currentTimeMillis();
+        // regeln/steuerung-fenster: EINMALIG hier ausloesen statt jeden frame
+        // neu zu pruefen (wie zuvor) -> die pro-frame-zeichenschleife kann
+        // unter last frames ueberspringen (backpressure, siehe
+        // zeichnenAusstehend), ein rein zeit-basiertes "nur in den ersten
+        // ERKLAERUNG_DAUER_MS zeichnen" haette das fenster dadurch komplett
+        // verpassen koennen, ohne je sichtbar gewesen zu sein
+        if (spieler != null && spieler.length >= 2) {
+            final String erklaerungText = RUNDEN_ZUM_SIEG +
+                " Runden fahren - wer zuerst fertig ist, gewinnt!\n" +
+                spieler[0].gibName() + " (links): W A S D + B\n" +
+                spieler[1].gibName() + " (rechts): Pfeiltasten + N";
+            Platform.runLater(() -> this.oberflaeche.zeigeErklaerung(erklaerungText));
+        }
     }
 
     // schon mal gestartet? (fuer fortsetzen nach pause)
@@ -241,6 +267,18 @@ public class Spiel implements Runnable {
             }
             // pause -> nix simulieren, bild bleibt stehen
             if (pausiert) {
+                try {
+                    Thread.sleep(16);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    laeuft = false;
+                }
+                continue;
+            }
+            // rennen vorbei (jemand hat RUNDEN_ZUM_SIEG runden voll) -> genau wie
+            // pause: nix mehr simulieren, letztes bild bleibt hinter dem
+            // sieger-panel (siehe Oberflaeche.zeigeSieger()) stehen
+            if (rennBeendet) {
                 try {
                     Thread.sleep(16);
                 } catch (InterruptedException e) {
@@ -393,6 +431,14 @@ public class Spiel implements Runnable {
                         datenbank.speichereSpielstand(s.gibName(), aktuellerSeed, score, lapZeit);
                         // runde durch -> nitros wieder auffuellen
                         erneuereNitros();
+                        // sieg: erster spieler mit RUNDEN_ZUM_SIEG runden gewinnt sofort,
+                        // rest der schleife (physik/kollisionen) friert naechsten frame ein
+                        if (!rennBeendet && s.gibLapZaehler() >= RUNDEN_ZUM_SIEG) {
+                            rennBeendet = true;
+                            siegerName = s.gibName();
+                            final String siegerFuerUi = siegerName;
+                            Platform.runLater(() -> this.oberflaeche.zeigeSieger(siegerFuerUi));
+                        }
                     }
                     s.setzeNaechsterCheckpoint(0);
                     s.setzeKreuzungsCooldown(180);
@@ -514,13 +560,23 @@ public class Spiel implements Runnable {
 
     public boolean istRennenGestartet() {
         return countdownStartZeit >= 0 &&
-            System.currentTimeMillis() - countdownStartZeit >= COUNTDOWN_DAUER_MS;
+            System.currentTimeMillis() - countdownStartZeit >=
+                ERKLAERUNG_DAUER_MS + COUNTDOWN_DAUER_MS;
+    }
+
+    public boolean istRennenBeendet() {
+        return rennBeendet;
+    }
+
+    public String gibSiegerName() {
+        return siegerName;
     }
 
     private String gibCountdownText() {
         if (countdownStartZeit < 0) return null;
 
-        long vergangen = System.currentTimeMillis() - countdownStartZeit;
+        long vergangen = System.currentTimeMillis() - countdownStartZeit - ERKLAERUNG_DAUER_MS;
+        if (vergangen < 0) return null;
         if (vergangen < 1000) return "3";
         if (vergangen < 2000) return "2";
         if (vergangen < COUNTDOWN_DAUER_MS) return "1";

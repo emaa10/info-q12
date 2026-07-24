@@ -73,6 +73,11 @@ public class Main extends Application {
             oberflaeche.setzeFortsetzenSichtbar(true);
             oberflaeche.zeigeMenue();
         });
+        // sieger-bildschirm -> knopf oder 30s-timer (siehe Oberflaeche.zeigeSieger())
+        oberflaeche.setzeZurueckZumStartAktion(() -> {
+            oberflaeche.setzeFortsetzenSichtbar(false);
+            oberflaeche.zeigeMenue();
+        });
         // leaderboard: eintraege in text-zeilen + seeds umbauen
         oberflaeche.setzeLeaderboardAktion(() -> {
             Liste eintraege = spiel.gibLeaderboardEintraege();

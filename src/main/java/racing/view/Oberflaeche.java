@@ -3,6 +3,7 @@ package racing.view;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.IntConsumer;
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -20,6 +21,16 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import javafx.scene.text.TextAlignment;
+import javafx.util.Duration;
+import javafx.geometry.Insets;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundFill;
+import javafx.scene.layout.Border;
+import javafx.scene.layout.BorderStroke;
+import javafx.scene.layout.BorderStrokeStyle;
+import javafx.scene.layout.BorderWidths;
+import javafx.scene.layout.CornerRadii;
 import racing.datastructure.Knoten;
 import racing.datastructure.Liste;
 import racing.datastructure.Listenelement;
@@ -45,6 +56,7 @@ public class Oberflaeche {
     private final StackPane menueEbene; // menü drueber, per setVisible an/aus
     private final VBox hauptmenuPanel;
     private final VBox leaderboardPanel;
+    private final VBox siegerPanel;
     private final VBox leaderboardZeilen; // hier kommen die eintraege rein
     private final Canvas leinwand;
     private final GraphicsContext gc;
@@ -63,11 +75,16 @@ public class Oberflaeche {
     private Runnable pauseAktion;
     private Runnable leaderboardAktion;
     private Runnable fortsetzenAktion;
+    private Runnable zurueckZumStartAktion; // sieger-bildschirm -> knopf oder 30s-timer
     private IntConsumer seedAktion; // klick auf leaderboard-eintrag -> seed spielen
 
     private TextField nameFeld;
     private TextField nameFeld2;
     private Button fortsetzenKnopf; // nur sichtbar wenn pausiert
+    private Label siegerLabel;
+    private PauseTransition siegerTimer; // 30s auto-rueckkehr, wird bei knopfklick gestoppt
+    private Label erklaerungLabel; // regeln/steuerung-infofenster beim rennstart
+    private PauseTransition erklaerungTimer; // 10s auto-ausblenden
 
     public Oberflaeche() {
         this.leinwand = new Canvas(BREITE, HOEHE);
@@ -83,15 +100,45 @@ public class Oberflaeche {
         this.leaderboardPanel.getStyleClass().add("panel");
         this.leaderboardZeilen = new VBox(6);
         this.leaderboardZeilen.setAlignment(Pos.CENTER);
+        this.siegerPanel = new VBox(20);
+        this.siegerPanel.setAlignment(Pos.CENTER);
+        this.siegerPanel.getStyleClass().add("panel");
 
-        this.menueEbene = new StackPane(hauptmenuPanel, leaderboardPanel);
+        this.menueEbene = new StackPane(hauptmenuPanel, leaderboardPanel, siegerPanel);
         this.menueEbene.getStyleClass().add("menue-ebene");
 
         baueHauptmenue();
         baueLeaderboard();
+        baueSieger();
         zeigeHauptmenue();
 
-        this.wurzel = new StackPane(spielEbene, menueEbene);
+        // regeln/steuerung-infofenster: eigene node ueber dem spielfeld, NICHT
+        // im canvas mitgezeichnet -> die pro-frame-zeichenschleife (siehe
+        // Spiel.spieleKreis()) darf unter last frames ueberspringen
+        // (backpressure gegen GC-thrashing, siehe zeichnenAusstehend dort) -
+        // ein canvas-gezeichnetes fenster koennte dadurch sein 10s-fenster
+        // komplett verpassen, ohne je sichtbar gewesen zu sein. als eigene
+        // node mit PauseTransition (wie beim sieger-panel) ist es davon
+        // unabhaengig.
+        this.erklaerungLabel = new Label();
+        this.erklaerungLabel.setWrapText(true);
+        this.erklaerungLabel.setTextAlignment(TextAlignment.CENTER);
+        this.erklaerungLabel.setMaxWidth(900);
+        this.erklaerungLabel.setStyle(
+            "-fx-font-family: Monospace; -fx-font-size: 20px; -fx-font-weight: bold;" +
+            "-fx-text-fill: white; -fx-padding: 26 34 26 34;"
+        );
+        this.erklaerungLabel.setBackground(new Background(new BackgroundFill(
+            Color.rgb(10, 14, 22, 0.92), new CornerRadii(16), Insets.EMPTY
+        )));
+        this.erklaerungLabel.setBorder(new Border(new BorderStroke(
+            Color.web("#ffb020"), BorderStrokeStyle.SOLID, new CornerRadii(16), new BorderWidths(2)
+        )));
+        this.erklaerungLabel.setVisible(false);
+        this.erklaerungLabel.setManaged(false);
+        StackPane.setAlignment(erklaerungLabel, Pos.CENTER);
+
+        this.wurzel = new StackPane(spielEbene, menueEbene, erklaerungLabel);
 
         this.baumBild = new Image(
             getClass().getResourceAsStream("/images/tree.png")
@@ -186,6 +233,27 @@ public class Oberflaeche {
         leaderboardPanel.getChildren().addAll(titel, leaderboardZeilen, zurueck);
     }
 
+    // sieger-bildschirm nach 3 runden: name + zurueck-knopf (per klick oder nach 30s automatisch)
+    private void baueSieger() {
+        Label titel = new Label("RENNEN VORBEI");
+        titel.getStyleClass().add("untertitel");
+
+        siegerLabel = new Label();
+        siegerLabel.setStyle(
+            "-fx-font-size: 28px; -fx-font-family: Monospace; -fx-font-weight: bold; -fx-text-fill: #ffb020;"
+        );
+
+        Button zurueck = new Button("Zurück zum Start");
+        zurueck.setPrefWidth(240);
+        zurueck.getStyleClass().add("menue-button");
+        zurueck.setOnAction(e -> {
+            if (siegerTimer != null) siegerTimer.stop();
+            if (zurueckZumStartAktion != null) zurueckZumStartAktion.run();
+        });
+
+        siegerPanel.getChildren().addAll(titel, siegerLabel, zurueck);
+    }
+
     public String gibSpielerName() {
         String name = nameFeld.getText().trim();
         return name.isEmpty() ? "Spieler 1" : name;
@@ -210,6 +278,10 @@ public class Oberflaeche {
 
     public void setzeFortsetzenAktion(Runnable fortsetzenAktion) {
         this.fortsetzenAktion = fortsetzenAktion;
+    }
+
+    public void setzeZurueckZumStartAktion(Runnable zurueckZumStartAktion) {
+        this.zurueckZumStartAktion = zurueckZumStartAktion;
     }
 
     public void setzeSeedAktion(IntConsumer seedAktion) {
@@ -245,18 +317,57 @@ public class Oberflaeche {
             }
         }
         hauptmenuPanel.setVisible(false);
+        siegerPanel.setVisible(false);
         leaderboardPanel.setVisible(true);
     }
 
     public void zeigeHauptmenue() {
         leaderboardPanel.setVisible(false);
+        siegerPanel.setVisible(false);
         hauptmenuPanel.setVisible(true);
+    }
+
+    // sieger-bildschirm zeigen: 30s-timer startet automatisch, wird bei
+    // knopfklick (siehe baueSieger()) gestoppt statt doppelt zu feuern
+    public void zeigeSieger(String siegerName) {
+        siegerLabel.setText(siegerName + " gewinnt!");
+        hauptmenuPanel.setVisible(false);
+        leaderboardPanel.setVisible(false);
+        siegerPanel.setVisible(true);
+        menueEbene.setVisible(true);
+        if (siegerTimer != null) siegerTimer.stop();
+        siegerTimer = new PauseTransition(Duration.seconds(30));
+        siegerTimer.setOnFinished(e -> {
+            if (zurueckZumStartAktion != null) zurueckZumStartAktion.run();
+        });
+        siegerTimer.play();
+    }
+
+    // regeln/steuerung-infofenster: 10s sichtbar, dann automatisch weg (siehe
+    // konstruktor fuer die begruendung, warum das eine eigene node statt
+    // canvas-gezeichnet ist)
+    public void zeigeErklaerung(String text) {
+        erklaerungLabel.setText(text);
+        erklaerungLabel.setVisible(true);
+        erklaerungLabel.setManaged(true);
+        if (erklaerungTimer != null) erklaerungTimer.stop();
+        erklaerungTimer = new PauseTransition(Duration.seconds(10));
+        erklaerungTimer.setOnFinished(e -> {
+            erklaerungLabel.setVisible(false);
+            erklaerungLabel.setManaged(false);
+        });
+        erklaerungTimer.play();
     }
 
     // menü an, spiel dahinter versteckt
     public void zeigeMenue() {
         zeigeHauptmenue();
         menueEbene.setVisible(true);
+        // falls das regeln/steuerung-fenster gerade noch laeuft (z.b. pause
+        // waehrend der ersten 10s) nicht ueber dem menü haengen lassen
+        if (erklaerungTimer != null) erklaerungTimer.stop();
+        erklaerungLabel.setVisible(false);
+        erklaerungLabel.setManaged(false);
     }
 
     // menü aus, canvas sichtbar

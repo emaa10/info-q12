@@ -35,7 +35,7 @@ public class Kontrolleur implements Runnable {
     }
 
     public void pruefeEingabe() {
-        if (!spiel.istRennenGestartet() || spiel.istPausiert()) return;
+        if (!spiel.istRennenGestartet() || spiel.istPausiert() || spiel.istRennenBeendet()) return;
 
         Set<KeyCode> tasten = oberflaeche.gibGedrueckteTasten();
         Spieler[] spielerListe = spiel.gibSpieler();
